@@ -1,0 +1,26 @@
+digraph ERDiagram {
+  rankdir=LR;
+  node [shape=record, fontname="Helvetica"];
+  Users [label="{USERS|+id PK\l+email\l+full_name\l+role\l+status\l}"];
+  Restaurants [label="{RESTAURANTS|+id PK\l+owner_id FK\l+name\l+status\l}"];
+  Addresses [label="{ADDRESSES|+id PK\l+user_id FK\l+restaurant_id FK\l+street\l+city\l}"];
+  MenuCategories [label="{MENU_CATEGORIES|+id PK\l+restaurant_id FK\l+name\l}"];
+  MenuItems [label="{MENU_ITEMS|+id PK\l+restaurant_id FK\l+category_id FK\l+name\l+price\l}"];
+  Orders [label="{ORDERS|+id PK\l+user_id FK\l+restaurant_id FK\l+delivery_agent_id FK\l+address_id FK\l+status\l}"];
+  OrderItems [label="{ORDER_ITEMS|+id PK\l+order_id FK\l+menu_item_id FK\l+quantity\l}"];
+  Payments [label="{PAYMENTS|+id PK\l+order_id FK\l+user_id FK\l+amount\l+status\l}"];
+  DeliveryAgents [label="{DELIVERY_AGENTS|+id PK\l+user_id FK\l+vehicle_type\l+rating\l}"];
+  Reservations [label="{RESERVATIONS|+id PK\l+user_id FK\l+restaurant_id FK\l+reservation_time\l}"];
+  Ratings [label="{RATINGS|+id PK\l+reviewer_id FK\l+target_type\l+target_id\l+rating\l}"];
+  Users -> Restaurants [label="owns", arrowhead=vee];
+  Users -> Addresses [label="has", arrowhead=vee];
+  Restaurants -> MenuCategories [label="contains", arrowhead=vee];
+  Restaurants -> MenuItems [label="offers", arrowhead=vee];
+  Orders -> OrderItems [label="contains", arrowhead=vee];
+  Users -> Orders [label="places", arrowhead=vee];
+  Restaurants -> Orders [label="receives", arrowhead=vee];
+  Orders -> Addresses [label="delivers to", arrowhead=vee];
+  Users -> Payments [label="makes", arrowhead=vee];
+  Users -> DeliveryAgents [label="registers as", arrowhead=vee];
+  Users -> Reservations [label="books", arrowhead=vee];
+}

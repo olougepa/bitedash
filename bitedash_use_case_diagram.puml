@@ -1,0 +1,55 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+actor User
+actor "Restaurant Owner" as Owner
+actor "Delivery Agent" as Agent
+actor Administrator
+
+package "Customer Use Cases" {
+  User --> (Browse restaurants and meals)
+  User --> (Compare meals by price and rating)
+  User --> (Place order for delivery)
+  User --> (Place order for pickup)
+  User --> (Reserve table)
+  User --> (Choose delivery agent)
+  User --> (Track delivery progress)
+  User --> (Register delivery address)
+  User --> (Disable location)
+  User --> (Submit ratings and reviews)
+}
+
+package "Restaurant Owner Use Cases" {
+  Owner --> (Create restaurant business account)
+  Owner --> (Perform KYC)
+  Owner --> (Manage daily menu)
+  Owner --> (Receive and manage orders)
+  Owner --> (Manage reservations)
+  Owner --> (Capture payments)
+  Owner --> (Manage delivery agents)
+  Owner --> (View delivery progress map)
+  Owner --> (Disable location)
+  Owner --> (View revenue and order analytics)
+  Owner --> (Register payment modes)
+}
+
+package "Delivery Agent Use Cases" {
+  Agent --> (Register delivery account)
+  Agent --> (Perform KYC for self and vehicle)
+  Agent --> (Receive delivery assignments)
+  Agent --> (View delivery route and progress)
+  Agent --> (Update delivery status)
+  Agent --> (View earnings and metrics)
+  Agent --> (Register payment modes)
+}
+
+package "Administrator Use Cases" {
+  Administrator --> (Manage restaurants and owners)
+  Administrator --> (Manage delivery agents)
+  Administrator --> (Moderate menu items and categories)
+  Administrator --> (Review KYC and compliance)
+  Administrator --> (View dashboards and reports)
+  Administrator --> (Manage promotions and offers)
+}
+
+@enduml

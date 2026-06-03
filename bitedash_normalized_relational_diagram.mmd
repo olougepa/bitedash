@@ -1,0 +1,165 @@
+erDiagram
+    USERS {
+        bigint id PK
+        varchar email
+        varchar full_name
+        varchar phone
+        enum role
+        enum status
+        boolean location_enabled
+        datetime created_at
+    }
+    ROLES {
+        int id PK
+        varchar name
+        varchar description
+    }
+    RESTAURANTS {
+        bigint id PK
+        bigint owner_id FK
+        varchar name
+        text description
+        bigint address_id FK
+        enum status
+        boolean is_open
+        decimal latitude
+        decimal longitude
+    }
+    ADDRESSES {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        varchar label
+        varchar street
+        varchar city
+        varchar state
+        varchar country
+        varchar postal_code
+        decimal latitude
+        decimal longitude
+    }
+    PAYMENT_METHODS {
+        bigint id PK
+        bigint user_id FK
+        enum type
+        varchar label
+        varchar provider
+        text details
+        boolean is_enabled
+    }
+    KYC_RECORDS {
+        bigint id PK
+        bigint user_id FK
+        enum entity_type
+        enum document_type
+        varchar document_number
+        varchar document_image_url
+        enum status
+        datetime verified_at
+    }
+    MENU_CATEGORIES {
+        bigint id PK
+        bigint restaurant_id FK
+        varchar name
+        text description
+        int priority
+    }
+    MENU_ITEMS {
+        bigint id PK
+        bigint restaurant_id FK
+        bigint category_id FK
+        varchar name
+        text description
+        decimal price
+        varchar currency
+        decimal rating
+        boolean is_available
+    }
+    ORDERS {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        bigint delivery_agent_id FK
+        bigint address_id FK
+        enum order_type
+        enum status
+        decimal sub_total
+        decimal delivery_fee
+        decimal tax
+        decimal discount
+        decimal total
+        datetime requested_at
+    }
+    ORDER_ITEMS {
+        bigint id PK
+        bigint order_id FK
+        bigint menu_item_id FK
+        int quantity
+        decimal unit_price
+        decimal total_price
+        text notes
+    }
+    RESERVATIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        int party_size
+        datetime reservation_time
+        enum status
+        text special_requests
+    }
+    PAYMENTS {
+        bigint id PK
+        bigint order_id FK
+        bigint user_id FK
+        bigint payment_method_id FK
+        decimal amount
+        varchar currency
+        enum status
+        varchar transaction_reference
+        datetime paid_at
+    }
+    DELIVERY_AGENTS {
+        bigint id PK
+        bigint user_id FK
+        enum vehicle_type
+        varchar vehicle_registration
+        decimal rating
+        boolean is_active
+    }
+    RATINGS {
+        bigint id PK
+        bigint reviewer_id FK
+        enum target_type
+        bigint target_id FK
+        int rating
+        text comment
+        datetime created_at
+    }
+    PROMOTIONS {
+        bigint id PK
+        bigint restaurant_id FK
+        varchar code
+        text description
+        decimal discount_percent
+        decimal discount_amount
+        datetime valid_from
+        datetime valid_until
+        boolean is_active
+    }
+
+    USERS ||--o{ ADDRESSES : "has"
+    USERS ||--o{ PAYMENT_METHODS : "saves"
+    USERS ||--o{ KYC_RECORDS : "submits"
+    USERS ||--o{ ORDERS : "places"
+    USERS ||--o{ RESERVATIONS : "books"
+    USERS ||--o{ RATINGS : "writes"
+    USERS ||--o{ DELIVERY_AGENTS : "registers as"
+    RESTAURANTS ||--o{ MENU_CATEGORIES : "organizes"
+    RESTAURANTS ||--o{ MENU_ITEMS : "offers"
+    RESTAURANTS ||--o{ ORDERS : "receives"
+    RESTAURANTS ||--o{ RESERVATIONS : "accepts"
+    RESTAURANTS ||--o{ PROMOTIONS : "runs"
+    ORDERS ||--o{ ORDER_ITEMS : "contains"
+    ORDERS ||--o{ PAYMENTS : "generates"
+    DELIVERY_AGENTS ||--o{ ORDERS : "fulfills"

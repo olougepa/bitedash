@@ -1,0 +1,11 @@
+# Flutter ignore
+.build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.idea/
+.vscode/
+**/IOS/
+**/android/

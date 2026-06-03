@@ -1,0 +1,28 @@
+name: Generate OpenAPI
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, json, pdo_mysql
+      - name: Install composer dependencies
+        run: composer install --no-progress --prefer-dist
+        working-directory: backend
+      - name: Generate OpenAPI JSON
+        run: composer run-script generate-openapi
+        working-directory: backend
+      - name: Upload generated OpenAPI
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: backend/docs/openapi.generated.json

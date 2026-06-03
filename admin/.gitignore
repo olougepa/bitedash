@@ -1,0 +1,5 @@
+# React admin ignore
+node_modules/
+build/
+.env
+.DS_Store

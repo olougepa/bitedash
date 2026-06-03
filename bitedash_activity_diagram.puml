@@ -1,0 +1,35 @@
+@startuml
+start
+:Open Bitedash mobile app;
+:Select user type or login;
+:Browse restaurant categories and menu items;
+if (User wants to compare meals?) then (yes)
+  :Compare items by price, rating, delivery fee;
+endif
+if (Order type is delivery?) then (yes)
+  :Select a delivery address;
+  :Choose a delivery agent by rating or fee;
+else if (Order type is pickup?) then (yes)
+  :Choose pickup time and confirm location;
+else if (Reservation?) then (yes)
+  :Select restaurant and reservation time;
+  :Submit reservation request;
+endif
+:Review order summary;
+:Choose payment method (card, momo, cash);
+:Submit payment;
+if (Payment successful?) then (yes)
+  :Create order and notify restaurant;
+  :Assign delivery agent if delivery requested;
+  :Track order status and map progress;
+  if (Delivery agent en route?) then (yes)
+    :Show restaurant location, rider location, address;
+  endif
+  :Complete delivery or pickup;
+  :Submit rating and review;
+else (no)
+  :Show payment error;
+  stop
+endif
+stop
+@enduml

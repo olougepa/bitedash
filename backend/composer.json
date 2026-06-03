@@ -1,0 +1,36 @@
+{
+  "name": "bitedash/backend",
+  "description": "Bitedash Yii2 REST API backend",
+  "type": "project",
+  "require": {
+    "php": ">=8.1.0",
+    "yiisoft/yii2": "~2.0.48",
+    "yiisoft/yii2-swiftmailer": "~2.1.0",
+    "yiisoft/yii2-bootstrap4": "~2.0.10",
+    "firebase/php-jwt": "^6.3"
+  },
+  "require-dev": {
+    "zircote/swagger-php": "^4.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "app\\": "src/"
+    }
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://asset-packagist.org"
+    }
+  ],
+  "config": {
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true
+    }
+  }
+  ,
+  "scripts": {
+    "generate-openapi": "php docs/generate.php"
+  }
+
+}

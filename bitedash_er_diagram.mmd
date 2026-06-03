@@ -1,0 +1,140 @@
+erDiagram
+    USERS {
+        bigint id PK
+        varchar email
+        varchar full_name
+        varchar phone
+        enum role
+        enum status
+        boolean location_enabled
+        datetime created_at
+    }
+    RESTAURANTS {
+        bigint id PK
+        bigint owner_id FK
+        varchar name
+        text description
+        bigint address_id FK
+        enum status
+        boolean is_open
+        decimal latitude
+        decimal longitude
+    }
+    ADDRESSES {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        varchar label
+        varchar street
+        varchar city
+        varchar state
+        varchar country
+        varchar postal_code
+        decimal latitude
+        decimal longitude
+    }
+    MENU_CATEGORIES {
+        bigint id PK
+        bigint restaurant_id FK
+        varchar name
+        text description
+        int priority
+    }
+    MENU_ITEMS {
+        bigint id PK
+        bigint restaurant_id FK
+        bigint category_id FK
+        varchar name
+        text description
+        decimal price
+        varchar currency
+        decimal rating
+        boolean is_available
+    }
+    ORDERS {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        bigint delivery_agent_id FK
+        bigint address_id FK
+        enum order_type
+        enum status
+        decimal sub_total
+        decimal delivery_fee
+        decimal tax
+        decimal total
+        datetime created_at
+    }
+    ORDER_ITEMS {
+        bigint id PK
+        bigint order_id FK
+        bigint menu_item_id FK
+        int quantity
+        decimal unit_price
+        decimal total_price
+    }
+    PAYMENTS {
+        bigint id PK
+        bigint order_id FK
+        bigint user_id FK
+        bigint payment_method_id FK
+        decimal amount
+        varchar currency
+        enum status
+        varchar transaction_reference
+    }
+    PAYMENT_METHODS {
+        bigint id PK
+        bigint user_id FK
+        enum type
+        varchar label
+        boolean is_enabled
+    }
+    DELIVERY_AGENTS {
+        bigint id PK
+        bigint user_id FK
+        enum vehicle_type
+        varchar vehicle_registration
+        decimal rating
+        boolean is_active
+    }
+    RESERVATIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint restaurant_id FK
+        int party_size
+        datetime reservation_time
+        enum status
+    }
+    RATINGS {
+        bigint id PK
+        bigint reviewer_id FK
+        enum target_type
+        bigint target_id FK
+        int rating
+        text comment
+    }
+    KYC_RECORDS {
+        bigint id PK
+        bigint user_id FK
+        enum entity_type
+        enum document_type
+        varchar document_number
+        enum status
+    }
+
+    USERS ||--o{ RESTAURANTS : owns
+    USERS ||--o{ ADDRESSES : "has"
+    RESTAURANTS ||--o{ MENU_CATEGORIES : contains
+    RESTAURANTS ||--o{ MENU_ITEMS : offers
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    USERS ||--o{ ORDERS : places
+    RESTAURANTS ||--o{ ORDERS : receives
+    ORDERS }o--|| ADDRESSES : "delivers to"
+    USERS ||--o{ PAYMENTS : makes
+    USERS ||--o{ PAYMENT_METHODS : saves
+    USERS ||--o{ DELIVERY_AGENTS : "registered as"
+    USERS ||--o{ RESERVATIONS : books
+    USERS ||--o{ RATINGS : gives
+    USERS ||--o{ KYC_RECORDS : provides
+    DELIVERY_AGENTS ||--o{ ORDERS : fulfills

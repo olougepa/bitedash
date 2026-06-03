@@ -1,0 +1,21 @@
+digraph Activity {
+  rankdir=TB;
+  node [shape=box, style=rounded, fontname="Helvetica"];
+  start [shape=circle, label="Start"];
+  browse [label="Open app and browse restaurants"];
+  compare [label="Compare meals by price and rating"];
+  choose_order [label="Choose delivery/pickup/reservation"];
+  address [label="Select/register delivery address"];
+  choose_agent [label="Choose delivery agent by rating/fee"];
+  review [label="Review order summary"];
+  payment [label="Select payment method and pay"];
+  success [shape=box, label="Confirm order and notify restaurant"];
+  progress [label="Track order and delivery progress"];
+  complete [label="Complete order and submit review"];
+  error [shape=diamond, label="Payment successful?"];
+  stop [shape=doublecircle, label="End"];
+  start -> browse -> compare -> choose_order -> address -> choose_agent -> review -> payment -> error;
+  error -> success [label="yes"];
+  error -> stop [label="no"];
+  success -> progress -> complete -> stop;
+}

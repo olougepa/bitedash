@@ -1,0 +1,6 @@
+# Root ignore for generated app structure
+.DS_Store
+*.log
+node_modules/
+vscode-server/
+/tmp/

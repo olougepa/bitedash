@@ -1,0 +1,25 @@
+digraph Sequence {
+  rankdir=LR;
+  node [shape=rect, style=filled, fillcolor=lightcyan, fontname="Helvetica"];
+  App [label="Bitedash Mobile App"];
+  API [label="Yii2 API Backend"];
+  Restaurant [label="Restaurant System"];
+  Payment [label="Payment Gateway"];
+  AgentApp [label="Delivery Agent App"];
+  Notify [label="Notification Service"];
+  App -> API [label="GET /restaurants, /menu-items, /delivery-agents"];
+  API -> App [label="Return restaurant menu and agents"];
+  App -> API [label="POST /orders"];
+  API -> Restaurant [label="Notify restaurant of new order"];
+  API -> Payment [label="Authorize payment"];
+  Payment -> API [label="Payment confirmed"];
+  API -> Notify [label="Notify delivery agent"];
+  API -> App [label="Order confirmed"];
+  API -> AgentApp [label="Assign delivery request"];
+  AgentApp -> API [label="Accept assignment"];
+  API -> Notify [label="Update user and restaurant"];
+  AgentApp -> API [label="Update location/status"];
+  API -> App [label="Push delivery progress updates"];
+  AgentApp -> API [label="Mark delivery complete"];
+  API -> App [label="Notify completion"];
+}

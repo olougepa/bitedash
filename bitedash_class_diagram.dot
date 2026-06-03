@@ -1,0 +1,24 @@
+digraph ClassDiagram {
+  rankdir=LR;
+  node [shape=record, fontname="Helvetica"];
+  User [label="{User|+id: bigint\l+email: varchar\l+role: enum\l+status: enum\l+location_enabled: bool\l}|{+created_at\l+updated_at\l}}"];
+  Restaurant [label="{Restaurant|+id: bigint\l+owner_id: bigint\l+name: varchar\l+status: enum\l+latitude: decimal\l+longitude: decimal\l}|{+created_at\l+updated_at\l}}"];
+  MenuCategory [label="{MenuCategory|+id: bigint\l+restaurant_id: bigint\l+name: varchar\l+priority: int\l}"];
+  MenuItem [label="{MenuItem|+id: bigint\l+restaurant_id: bigint\l+category_id: bigint\l+name: varchar\l+price: decimal\l+rating: decimal\l+is_available: bool\l}"];
+  Order [label="{Order|+id: bigint\l+user_id: bigint\l+restaurant_id: bigint\l+delivery_agent_id: bigint\l+order_type: enum\l+status: enum\l+total: decimal\l}"];
+  OrderItem [label="{OrderItem|+id: bigint\l+order_id: bigint\l+menu_item_id: bigint\l+quantity: int\l+unit_price: decimal\l}"];
+  Reservation [label="{Reservation|+id: bigint\l+user_id: bigint\l+restaurant_id: bigint\l+reservation_time: datetime\l+status: enum\l}"];
+  Payment [label="{Payment|+id: bigint\l+order_id: bigint\l+user_id: bigint\l+amount: decimal\l+status: enum\l}"];
+  DeliveryAgent [label="{DeliveryAgent|+id: bigint\l+user_id: bigint\l+vehicle_type: enum\l+rating: decimal\l+is_active: bool\l}"];
+  Address [label="{Address|+id: bigint\l+user_id: bigint\l+restaurant_id: bigint\l+street: varchar\l+city: varchar\l}"];
+  User -> Restaurant [arrowhead=empty,label="owns"];
+  Restaurant -> MenuCategory [arrowhead=empty,label="has"];
+  Restaurant -> MenuItem [arrowhead=empty,label="offers"];
+  Order -> OrderItem [arrowhead=vee,label="contains"];
+  User -> Order [arrowhead=vee,label="places"];
+  Restaurant -> Order [arrowhead=vee,label="receives"];
+  Order -> DeliveryAgent [arrowhead=vee,label="assigned to"];
+  Order -> Address [arrowhead=vee,label="delivers to"];
+  User -> Reservation [arrowhead=vee,label="books"];
+  User -> Payment [arrowhead=vee,label="pays"];
+}

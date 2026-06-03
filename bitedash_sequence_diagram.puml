@@ -1,0 +1,31 @@
+@startuml
+actor User
+participant "Bitedash Flutter App" as App
+participant "Yii2 API Backend" as API
+participant "Restaurant System" as Restaurant
+participant "Payment Gateway" as PaymentGateway
+participant "Delivery Agent App" as AgentApp
+participant "Notification Service" as Notify
+
+User -> App: browse restaurants and select items
+App -> API: GET /restaurants, /menu-items, /delivery-agents
+API -> App: restaurant list, menu, agent options
+User -> App: submit order request
+App -> API: POST /orders
+API -> Restaurant: send order notification
+API -> PaymentGateway: authorize payment
+PaymentGateway -> API: payment confirmed
+API -> Notify: notify selected delivery agent
+API -> App: order confirmed
+API -> AgentApp: assignment request
+AgentApp -> API: accept assignment
+API -> Notify: update User and Restaurant
+loop delivery progress
+  AgentApp -> API: update location/status
+  API -> App: push delivery progress
+  API -> App: update map view
+end
+AgentApp -> API: mark delivery complete
+API -> App: notify completion
+App -> User: request rating/review
+@enduml

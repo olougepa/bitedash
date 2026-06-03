@@ -1,0 +1,191 @@
+@startuml
+skinparam classAttributeIconSize 0
+class User {
+  +id: bigint
+  +email: varchar
+  +password_hash: varchar
+  +full_name: varchar
+  +phone: varchar
+  +role: enum
+  +status: enum
+  +location_enabled: boolean
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class Restaurant {
+  +id: bigint
+  +owner_id: bigint
+  +name: varchar
+  +description: text
+  +address_id: bigint
+  +status: enum
+  +is_open: boolean
+  +latitude: decimal
+  +longitude: decimal
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class DeliveryAgent {
+  +id: bigint
+  +user_id: bigint
+  +vehicle_type: enum
+  +vehicle_registration: varchar
+  +rating: decimal
+  +is_active: boolean
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class Address {
+  +id: bigint
+  +user_id: bigint
+  +restaurant_id: bigint
+  +label: varchar
+  +street: varchar
+  +city: varchar
+  +state: varchar
+  +country: varchar
+  +postal_code: varchar
+  +latitude: decimal
+  +longitude: decimal
+  +created_at: datetime
+}
+
+class MenuCategory {
+  +id: bigint
+  +restaurant_id: bigint
+  +name: varchar
+  +description: text
+  +priority: int
+}
+
+class MenuItem {
+  +id: bigint
+  +restaurant_id: bigint
+  +category_id: bigint
+  +name: varchar
+  +description: text
+  +price: decimal
+  +currency: varchar
+  +rating: decimal
+  +is_available: boolean
+  +preparation_time: int
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class Order {
+  +id: bigint
+  +user_id: bigint
+  +restaurant_id: bigint
+  +delivery_agent_id: bigint
+  +address_id: bigint
+  +reservation_id: bigint
+  +order_type: enum
+  +status: enum
+  +sub_total: decimal
+  +delivery_fee: decimal
+  +tax: decimal
+  +discount: decimal
+  +total: decimal
+  +requested_at: datetime
+  +delivered_at: datetime
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class OrderItem {
+  +id: bigint
+  +order_id: bigint
+  +menu_item_id: bigint
+  +quantity: int
+  +unit_price: decimal
+  +total_price: decimal
+  +notes: text
+}
+
+class Reservation {
+  +id: bigint
+  +user_id: bigint
+  +restaurant_id: bigint
+  +party_size: int
+  +reservation_time: datetime
+  +status: enum
+  +special_requests: text
+  +created_at: datetime
+  +updated_at: datetime
+}
+
+class Payment {
+  +id: bigint
+  +order_id: bigint
+  +user_id: bigint
+  +payment_method_id: bigint
+  +amount: decimal
+  +currency: varchar
+  +status: enum
+  +transaction_reference: varchar
+  +paid_at: datetime
+}
+
+class PaymentMethod {
+  +id: bigint
+  +user_id: bigint
+  +type: enum
+  +label: varchar
+  +provider: varchar
+  +details: text
+  +is_enabled: boolean
+}
+
+class KYCRecord {
+  +id: bigint
+  +user_id: bigint
+  +entity_type: enum
+  +document_type: enum
+  +document_number: varchar
+  +document_image_url: varchar
+  +status: enum
+  +verified_at: datetime
+}
+
+class Rating {
+  +id: bigint
+  +reviewer_id: bigint
+  +target_type: enum
+  +target_id: bigint
+  +rating: int
+  +comment: text
+  +created_at: datetime
+}
+
+class Promotion {
+  +id: bigint
+  +restaurant_id: bigint
+  +code: varchar
+  +description: text
+  +discount_percent: decimal
+  +discount_amount: decimal
+  +valid_from: datetime
+  +valid_until: datetime
+  +is_active: boolean
+}
+
+User <|-- DeliveryAgent
+User <|-- Restaurant
+User <|-- Administrator
+Restaurant "1" o-- "*" MenuCategory
+Restaurant "1" o-- "*" MenuItem
+Restaurant "1" o-- "*" Order
+Order "1" o-- "*" OrderItem
+Order "0..1" o-- "1" Payment
+Order "0..1" o-- "1" DeliveryAgent
+Order "0..1" o-- "1" Address
+Restaurant "1" o-- "*" Reservation
+User "1" o-- "*" Address
+User "1" o-- "*" Rating
+User "1" o-- "*" PaymentMethod
+User "1" o-- "*" KYCRecord
+@enduml
