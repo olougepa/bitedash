@@ -4,22 +4,22 @@
 
 Bitedash is a multi-vendor restaurant delivery app with:
 
-- A **Yii2 REST API backend** (`backend/`)
+- A **Yii2 Advanced REST API backend** (`backend/` for web, `common/` for shared models)
 - A **Flutter mobile app** (`mobile_app/`)
 - A **React admin dashboard** (`admin/`)
 
-This top-level README is a quick start. The full app documentation is in `README_FULL.md`.
+The API is versioned under `/v1` (e.g., `/v1/restaurant`, `/v1/order`).
 
 ## Quick setup
 
 ### Backend
 
 ```bash
-cd /opt/lampp/htdocs/bitedash/backend
+cd /opt/lampp/htdocs/bitedash
 composer install
 ```
 
-Configure the database in `backend/config/db.php`.
+Configure the database in `common/config/db.php`.
 
 Import the schema:
 
@@ -27,6 +27,8 @@ Import the schema:
 mysql -uroot -h127.0.0.1 -e "CREATE DATABASE IF NOT EXISTS bitedash CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -uroot -h127.0.0.1 bitedash < /opt/lampp/htdocs/bitedash/mysql_schema.sql
 ```
+
+Run from web root pointing to `backend/web/index.php`.
 
 ### Admin UI
 

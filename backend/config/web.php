@@ -1,8 +1,10 @@
 <?php
+
 return [
-    'id' => 'bitedash-api',
+    'id' => 'bitedash-backend',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'controllerNamespace' => 'backend\controllers',
     'components' => [
         'request' => [
             'parsers' => [
@@ -10,7 +12,7 @@ return [
             ],
         ],
         'user' => [
-            'identityClass' => 'app\\models\\User',
+            'identityClass' => 'common\models\User',
             'enableAutoLogin' => false,
             'enableSession' => false,
         ],
@@ -20,21 +22,16 @@ return [
         ],
         'urlManager' => [
             'enablePrettyUrl' => true,
-            'enableStrictParsing' => true,
+            'enableStrictParsing' => false,
             'showScriptName' => false,
             'rules' => [
-                // Explicit auth endpoints (handle login/register/refresh/profile)
-                'OPTIONS api/auth/login' => 'api/auth/login',
-                'POST api/auth/login' => 'api/auth/login',
-                'POST api/auth/register' => 'api/auth/register',
-                'GET api/openapi.json' => 'api/docs/index',
-                'GET api/openapi' => 'api/docs/index',
-                'POST api/auth/refresh' => 'api/auth/refresh',
-                'GET api/auth/profile' => 'api/auth/profile',
-                ['class' => 'yii\\rest\\UrlRule', 'controller' => ['api/restaurant', 'api/order', 'api/user', 'api/delivery-agent', 'api/payment', 'api/notification', 'api/menu-item', 'api/auth']],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'controller' => ['v1/restaurant', 'v1/order', 'v1/user', 'v1/delivery-agent', 'v1/payment', 'v1/notification', 'v1/menu-item', 'v1/auth', 'v1/docs'],
+                ],
             ],
         ],
-        'db' => require __DIR__ . '/db.php',
+        'db' => require dirname(__DIR__, 2) . '/common/config/db.php',
         'log' => [
             'targets' => [
                 [
@@ -45,8 +42,8 @@ return [
         ],
     ],
     'modules' => [
-        'api' => [
-            'class' => 'app\modules\api\Module',
+        'v1' => [
+            'class' => 'backend\modules\v1\Module',
         ],
     ],
 ];

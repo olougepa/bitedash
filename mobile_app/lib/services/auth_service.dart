@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 class AuthService {
-  final String baseUrl = 'https://api.bitedash.example.com';
+  final String baseUrl = 'https://api.bitedash.example.com/v1';
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<String?> login(String email, String password) async {
@@ -69,5 +69,12 @@ class AuthService {
       if (kDebugMode) print('refresh failed: $e');
     }
     return false;
+  }
+
+  Future<void> saveTokens(String accessToken, String? refreshToken) async {
+    await _storage.write(key: 'access_token', value: accessToken);
+    if (refreshToken != null) {
+      await _storage.write(key: 'refresh_token', value: refreshToken);
+    }
   }
 }

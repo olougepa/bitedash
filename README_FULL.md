@@ -19,13 +19,12 @@ The app is built from three main parts:
 
 ### Backend
 
-- Framework: **Yii2**
+- Framework: **Yii2 Advanced Template** (refactored)
 - Language: **PHP 8.1+**
-- API Mode: **REST** with `yii
-estUrlRule`
+- API Mode: **REST** with versioned module (`v1`)
 - JWT support via `firebase/php-jwt`
 - Database: **MySQL / MariaDB** with `utf8mb4` and **InnoDB**
-- Key API controllers:
+- Key API controllers (in `backend/modules/v1/controllers/`):
   - `AuthController` — authentication and token handling
   - `UserController` — user profile and registration
   - `RestaurantController` — restaurant listings and owner restaurant management
@@ -34,8 +33,9 @@ estUrlRule`
   - `PaymentController` — payment records and stubs
   - `DeliveryAgentController` — delivery assignments and agent status
   - `NotificationController` — notifications by user category
+  - `DocsController` — OpenAPI spec and Swagger UI
 
-Backend routes are declared in `backend/config/web.php` with `api/restaurant`, `api/order`, `api/user`, `api/delivery-agent`, `api/payment`, `api/notification`, `api/menu-item`, and `api/auth`.
+Backend routes are declared in `backend/config/web.php` under the `v1` module: `/v1/restaurant`, `/v1/order`, `/v1/user`, `/v1/delivery-agent`, `/v1/payment`, `/v1/notification`, `/v1/menu-item`, `/v1/auth`.
 
 ### Mobile App
 
@@ -122,14 +122,14 @@ Diagrams are included to visualize the app structure:
 
 ### Backend Setup
 
-1. Install PHP dependencies:
+1. Install PHP dependencies from project root:
 
 ```bash
-cd /opt/lampp/htdocs/bitedash/backend
+cd /opt/lampp/htdocs/bitedash
 composer install
 ```
 
-2. Configure database in `backend/config/db.php`.
+2. Configure database in `common/config/db.php`.
 
 3. Create and import the schema:
 
@@ -164,19 +164,18 @@ If the mobile client uses environment variables, ensure `.env` is configured bef
 
 ## API Endpoints
 
-The application exposes REST resources under the `api/` module.
+The application exposes REST resources under the `v1/` module:
 
-Typical endpoint patterns include:
-
-- `GET /api/restaurant`
-- `POST /api/order`
-- `GET /api/order/{id}`
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `GET /api/user/profile`
-- `GET /api/menu-item`
-- `GET /api/notification`
-- `POST /api/payment`
+- `GET /v1/restaurant`
+- `POST /v1/order`
+- `GET /v1/order/{id}`
+- `POST /v1/auth/login`
+- `POST /v1/auth/register`
+- `POST /v1/auth/refresh`
+- `GET /v1/auth/profile`
+- `GET /v1/menu-item`
+- `GET /v1/notification`
+- `POST /v1/payment`
 
 API responses are JSON-formatted and the backend expects JSON request bodies for REST actions.
 

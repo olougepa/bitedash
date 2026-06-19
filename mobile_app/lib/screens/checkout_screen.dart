@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../services/cart_provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
-import '../services/auth_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -17,7 +16,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _paymentMethod = 'cash';
   String _cardNumber = '';
   String _cardExpiry = '';
-  String _cardCvv = '';
   String _guestEmail = '';
 
   Future<void> _placeOrder() async {
@@ -47,11 +45,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final res = await api.submitOrder(payload);
       cart.clear();
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/order-confirmation', arguments: res);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order failed')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -63,7 +63,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(children: [
-          Expanded(child: ListView(children: cart.items.map((e) => ListTile(title: Text(e.name), trailing: Text('x${e.quantity}'))).toList())),
+          Expanded(
+            child: ListView(
+              children: cart.items.map((e) => ListTile(title: Text(e.name), trailing: Text('x${e.quantity}'))).toList(),
+            ),
+          ),
           Card(
             margin: const EdgeInsets.symmetric(vertical: 12),
             child: Padding(
@@ -97,7 +101,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     decoration: const InputDecoration(labelText: 'CVV'),
                     keyboardType: TextInputType.number,
                     obscureText: true,
-                    onChanged: (value) => setState(() => _cardCvv = value),
+                    onChanged: (value) => setState(() {}),
                   ),
                 ],
                 if (!Provider.of<AuthProvider>(context, listen: false).isAuthenticated) ...[
@@ -124,6 +128,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ]),
             ),
+          ),
           Text('Total: \$${cart.total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _loading ? const CircularProgressIndicator() : ElevatedButton(onPressed: _placeOrder, child: const Text('Place Order')),

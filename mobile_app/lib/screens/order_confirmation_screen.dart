@@ -6,7 +6,7 @@ class OrderConfirmationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments;
-    final order = args ?? {};
+    final Map<String, dynamic> order = args is Map<String, dynamic> ? args : {};
     return Scaffold(
       appBar: AppBar(title: const Text('Order Confirmed')),
       body: Center(
@@ -18,11 +18,11 @@ class OrderConfirmationScreen extends StatelessWidget {
             const Text('Thank you! Your order has been placed.', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 12),
             Text('Order: ${order['id'] ?? '—'}'),
-            if (order is Map && order['payment_stub'] != null) ...[
+            if (order['payment_stub'] != null) ...[
               const SizedBox(height: 8),
               Text('Payment details: ${order['payment_stub']}', textAlign: TextAlign.center),
             ],
-            if (order is Map && order['guest_token'] != null) ...[
+            if (order['guest_token'] != null) ...[
               const SizedBox(height: 8),
               Text('Guest lookup code: ${order['guest_token']}', textAlign: TextAlign.center),
               const SizedBox(height: 8),

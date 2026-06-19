@@ -13,6 +13,7 @@ import 'screens/order_confirmation_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/delivery_tracking_screen.dart';
 import 'screens/owner_pos_screen.dart';
+import 'screens/delivery_agent_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +55,7 @@ class BitedashApp extends StatelessWidget {
             '/notifications': (ctx) => const NotificationsScreen(),
             '/delivery-tracking': (ctx) => const DeliveryTrackingScreen(),
             '/owner-pos': (ctx) => const OwnerPosScreen(),
+            '/delivery-agent': (ctx) => const DeliveryAgentScreen(),
           },
         );
       }),

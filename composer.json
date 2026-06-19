@@ -1,0 +1,47 @@
+{
+    "name": "bitedash/yii2-app",
+    "description": "Bitedash Yii2 Advanced REST API",
+    "type": "project",
+    "keywords": ["yii2", "api", "rest"],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "require": {
+        "php": ">=7.3.0",
+        "yiisoft/yii2": "~2.0.48",
+        "yiisoft/yii2-swiftmailer": "~2.1.0",
+        "firebase/php-jwt": "^6.3"
+    },
+    "require-dev": {
+        "zircote/swagger-php": "^4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "common\\": "common/",
+            "backend\\": "backend/",
+            "console\\": "console/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "yii\\composer\\Installer::postInstall"
+        ],
+        "post-create-project-cmd": [
+            "yii\\composer\\Installer::postInstall"
+        ],
+        "generate-openapi": "php backend/docs/generate.php"
+    }
+}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../services/api_service.dart';
 
@@ -26,6 +27,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   String _errorMessage = '';
   int? _orderId;
   Map<String, dynamic>? _orderData;
+  bool _locationSharing = false;
+  Position? _customerLocation;
 
   @override
   void initState() {
@@ -39,6 +42,30 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _initLocationSharing() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+      setState(() => _locationSharing = true);
+      final position = await Geolocator.getCurrentPosition();
+      setState(() => _customerLocation = position);
+
+      if (_orderId != null) {
+        final api = Provider.of<ApiService>(context, listen: false);
+        await api.updateCustomerLocation(_orderId!, {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        });
+      }
+    }
   }
 
   Future<void> _loadOrderAndInitialize() async {
@@ -114,7 +141,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   LatLng get _driverLocation => _routePoints[_driverIndex];
 
   Set<Marker> get _markers {
-    return {
+    final markers = <Marker>{
       Marker(
         markerId: const MarkerId('pickup'),
         position: _pickupLocation,
@@ -134,6 +161,17 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),
     };
+
+    if (_customerLocation != null) {
+      markers.add(Marker(
+        markerId: const MarkerId('customer'),
+        position: LatLng(_customerLocation!.latitude, _customerLocation!.longitude),
+        infoWindow: const InfoWindow(title: 'Your location'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      ));
+    }
+
+    return markers;
   }
 
   Set<Polyline> get _polylines {
@@ -162,9 +200,9 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        appBar: AppBar(title: Text('Delivery Tracking')),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Delivery Tracking')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -176,7 +214,24 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Delivery Tracking')),
+      appBar: AppBar(
+        title: const Text('Delivery Tracking'),
+        actions: [
+          Switch(
+            value: _locationSharing,
+            onChanged: (v) async {
+              if (v) {
+                await _initLocationSharing();
+              } else {
+                setState(() => _locationSharing = false);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          Text('Share location', style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -190,8 +245,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
                   _mapController.complete(controller);
                 }
               },
-              myLocationEnabled: false,
-              myLocationButtonEnabled: false,
+              myLocationEnabled: _locationSharing,
+              myLocationButtonEnabled: _locationSharing,
             ),
           ),
           Padding(

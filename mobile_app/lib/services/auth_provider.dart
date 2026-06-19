@@ -30,14 +30,14 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _token != null;
 
   Future<bool> login(String email, String password) async {
-    final token = await _authService.login(email, password);
-    if (token != null) {
-      _token = token;
+    final success = await apiService.login(email, password);
+    if (success) {
+      _token = await _authService.getToken();
       try {
         final profile = await apiService.fetchProfile(_token!);
         user = User.fromJson(profile);
       } catch (_) {
-        user = User(id: 0, email: email, fullName: 'Demo User');
+        user = User(id: 0, email: email, fullName: 'Demo User', role: 'customer');
       }
       notifyListeners();
       return true;
