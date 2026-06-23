@@ -16,6 +16,7 @@ class Order extends ActiveRecord
             [['restaurant_id', 'order_type', 'status', 'total'], 'required'],
             ['user_id', 'integer'],
             ['guest_email', 'email'],
+            ['guest_phone', 'string', 'max' => 50],
             [['guest_email', 'guest_token'], 'string', 'max' => 255],
             ['payment_stub', 'string'],
             ['order_type', 'in', 'range' => ['delivery', 'pickup', 'reservation']],

@@ -152,7 +152,17 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
-    if (auth.user?.role != 'delivery_agent' && auth.user?.role != 'admin') {
+    if (!auth.isApproved) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Delivery Agent')),
+        body: Center(child: Text('Account pending approval. You will be notified when approved.')),
+      );
+    }
+
+    final isDeliveryAgent = auth.user?.role == 'delivery_agent';
+    final isAdmin = auth.user?.role == 'admin';
+
+    if (!isDeliveryAgent && !isAdmin) {
       return Scaffold(
         appBar: AppBar(title: const Text('Delivery Agent')),
         body: const Center(child: Text('Access restricted to delivery agents.')),

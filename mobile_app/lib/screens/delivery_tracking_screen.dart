@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../services/api_service.dart';
+import 'chat_screen.dart';
 
 class DeliveryTrackingScreen extends StatefulWidget {
   const DeliveryTrackingScreen({super.key});
@@ -217,6 +218,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
       appBar: AppBar(
         title: const Text('Delivery Tracking'),
         actions: [
+          if (_orderId != null)
+            IconButton(
+              icon: const Icon(Icons.chat),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(orderId: _orderId!))),
+            ),
           Switch(
             value: _locationSharing,
             onChanged: (v) async {

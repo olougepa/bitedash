@@ -15,19 +15,22 @@ class AuthProvider extends ChangeNotifier {
   Future<void> init() async {
     _token = await _authService.getToken();
     if (_token != null) {
-      // optionally fetch user profile using api
       try {
         final profile = await apiService.fetchProfile(_token!);
         user = User.fromJson(profile);
-      } catch (_) {
-        user = null;
-      }
+      } catch (_) {}
     }
     isInitializing = false;
     notifyListeners();
   }
 
   bool get isAuthenticated => _token != null;
+
+  bool get isApproved {
+    if (user == null) return false;
+    if (user!.role == 'customer') return true;
+    return user!.status == 'active';
+  }
 
   Future<bool> login(String email, String password) async {
     final success = await apiService.login(email, password);
@@ -36,9 +39,49 @@ class AuthProvider extends ChangeNotifier {
       try {
         final profile = await apiService.fetchProfile(_token!);
         user = User.fromJson(profile);
-      } catch (_) {
-        user = User(id: 0, email: email, fullName: 'Demo User', role: 'customer');
-      }
+      } catch (_) {}
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> loginWithPhone(String phone, String password) async {
+    final success = await apiService.loginWithPhone(phone, password);
+    if (success) {
+      _token = await _authService.getToken();
+      try {
+        final profile = await apiService.fetchProfile(_token!);
+        user = User.fromJson(profile);
+      } catch (_) {}
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+    final success = await apiService.register(email, password, name, role: role, documentType: documentType, documentNumber: documentNumber);
+    if (success) {
+      _token = await _authService.getToken();
+      try {
+        final profile = await apiService.fetchProfile(_token!);
+        user = User.fromJson(profile);
+      } catch (_) {}
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+    final success = await apiService.registerWithPhone(phone, password, name, role: role, documentType: documentType, documentNumber: documentNumber);
+    if (success) {
+      _token = await _authService.getToken();
+      try {
+        final profile = await apiService.fetchProfile(_token!);
+        user = User.fromJson(profile);
+      } catch (_) {}
       notifyListeners();
       return true;
     }

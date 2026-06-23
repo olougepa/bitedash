@@ -19,6 +19,7 @@ class RestaurantController extends ActiveController
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;

@@ -4,9 +4,10 @@ class CartItem {
   final int id;
   final String name;
   final double price;
+  final int restaurantId;
   int quantity;
 
-  CartItem({required this.id, required this.name, required this.price, this.quantity = 1});
+  CartItem({required this.id, required this.name, required this.price, required this.restaurantId, this.quantity = 1});
 }
 
 class CartProvider extends ChangeNotifier {
@@ -14,11 +15,11 @@ class CartProvider extends ChangeNotifier {
 
   List<CartItem> get items => _items.values.toList();
 
-  void addItem(int id, String name, double price) {
+  void addItem(int id, String name, double price, {int? restaurantId}) {
     if (_items.containsKey(id)) {
       _items[id]!.quantity += 1;
     } else {
-      _items[id] = CartItem(id: id, name: name, price: price);
+      _items[id] = CartItem(id: id, name: name, price: price, restaurantId: restaurantId ?? 1);
     }
     notifyListeners();
   }

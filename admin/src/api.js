@@ -7,14 +7,12 @@ const api = axios.create({
   },
 });
 
-// attach access token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// response interceptor to handle refresh
 let isRefreshing = false;
 let refreshSubscribers = [];
 
@@ -56,7 +54,6 @@ api.interceptors.response.use(
         return axios(original);
       } catch (e) {
         isRefreshing = false;
-        // failed refresh, redirect to login
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         window.location.href = '/login';
@@ -102,5 +99,14 @@ export const fetchNotifications = () => api.get('/notification');
 export const createNotification = (notification) => api.post('/notification', notification);
 export const updateNotification = (id, notification) => api.put(`/notification/${id}`, notification);
 export const deleteNotification = (id) => api.delete(`/notification/${id}`);
+
+export const fetchUsers = () => api.get('/user');
+export const createUser = (user) => api.post('/user', user);
+export const updateUser = (id, user) => api.put(`/user/${id}`, user);
+export const deleteUser = (id) => api.delete(`/user/${id}`);
+
+export const fetchKycRecords = () => api.get('/kyc');
+export const approveKyc = (id) => api.put(`/kyc/${id}`, { status: 'approved' });
+export const rejectKyc = (id) => api.put(`/kyc/${id}`, { status: 'rejected' });
 
 export default api;

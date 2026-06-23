@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Restaurants from './pages/Restaurants';
 import Orders from './pages/Orders';
 import DeliveryAgents from './pages/DeliveryAgents';
+import Users from './pages/Users';
+import Kyc from './pages/Kyc';
 import Login from './pages/Login';
 import PosTerminal from './pages/PosTerminal';
 import NotificationsPage from './pages/Notifications';
@@ -62,6 +64,22 @@ function App() {
             element={
               <RequireAuth>
                 <DeliveryAgents />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <RequireAuth>
+                <Users />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/kyc"
+            element={
+              <RequireAuth>
+                <Kyc />
               </RequireAuth>
             }
           />

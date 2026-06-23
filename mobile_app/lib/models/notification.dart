@@ -15,7 +15,7 @@ class NotificationItem {
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     return NotificationItem(
-      id: json['id'] as int? ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       title: json['title'] as String? ?? '',
       message: json['message'] as String? ?? '',
       category: json['category'] as String? ?? 'all',

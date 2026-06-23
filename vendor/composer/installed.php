@@ -5,7 +5,7 @@
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => '8ab0ecef901e3716121a7042bd4c53185d24b399',
+        'reference' => '0f4f08c5967936799d1a3f529da76ee501ff864d',
         'name' => 'bitedash/yii2-app',
         'dev' => true,
     ),
@@ -16,7 +16,7 @@
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => '8ab0ecef901e3716121a7042bd4c53185d24b399',
+            'reference' => '0f4f08c5967936799d1a3f529da76ee501ff864d',
             'dev_requirement' => false,
         ),
         'bower-asset/inputmask' => array(
@@ -101,12 +101,12 @@
             'dev_requirement' => false,
         ),
         'firebase/php-jwt' => array(
-            'pretty_version' => 'v6.11.1',
-            'version' => '6.11.1.0',
+            'pretty_version' => 'v5.5.1',
+            'version' => '5.5.1.0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../firebase/php-jwt',
             'aliases' => array(),
-            'reference' => 'd1e91ecf8c598d073d0995afa8cd5c75c6e19e66',
+            'reference' => '83b609028194aa042ea33b5af2d41a7427de80e6',
             'dev_requirement' => false,
         ),
         'psr/log' => array(

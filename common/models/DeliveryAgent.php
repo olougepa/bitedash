@@ -25,4 +25,16 @@ class DeliveryAgent extends ActiveRecord
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
     }
+
+    public function fields()
+    {
+        $fields = parent::fields();
+        $fields['full_name'] = function () {
+            return $this->user ? $this->user->full_name : null;
+        };
+        $fields['phone'] = function () {
+            return $this->user ? $this->user->phone : null;
+        };
+        return $fields;
+    }
 }

@@ -21,7 +21,7 @@ class NotificationController extends ActiveController
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-                'Access-Control-Allow-Credentials' => true,
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;
@@ -30,6 +30,16 @@ class NotificationController extends ActiveController
     public function actions()
     {
         return parent::actions();
+    }
+
+    protected function verbs()
+    {
+        return [
+            'index' => ['GET'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+        ];
     }
 
     public function actionIndex()

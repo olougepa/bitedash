@@ -35,6 +35,12 @@ class OrderConfirmationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ElevatedButton(onPressed: () => Navigator.popUntil(context, ModalRoute.withName('/')), child: const Text('Back to home')),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/receipt', arguments: order),
+              icon: const Icon(Icons.receipt),
+              label: const Text('View Receipt'),
+            ),
           ]),
         ),
       ),

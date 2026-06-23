@@ -8,9 +8,6 @@ use yii\web\UnauthorizedHttpException;
 use common\models\DeliveryAgent;
 use common\models\Order;
 
-/**
- * @OA\Tag(name="DeliveryAgent", description="Delivery agent operations and tracking")
- */
 class DeliveryAgentController extends ActiveController
 {
     public $modelClass = 'common\models\DeliveryAgent';
@@ -23,15 +20,23 @@ class DeliveryAgentController extends ActiveController
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;
     }
 
-    /**
-     * Update delivery agent location
-     * @OA\Post(path="/delivery-agent/location", summary="Update agent location")
-     */
+    protected function getBodyParams()
+    {
+        $req = \Yii::$app->request;
+        $contentType = $req->getHeaders()->get('Content-Type');
+        if ($contentType && stripos($contentType, 'application/json') !== false) {
+            $rawBody = file_get_contents('php://input');
+            return json_decode($rawBody, true) ?: [];
+        }
+        return $req->bodyParams;
+    }
+
     public function actionLocation()
     {
         $user = $this->getCurrentUser();
@@ -44,7 +49,7 @@ class DeliveryAgentController extends ActiveController
             throw new BadRequestHttpException('Not a delivery agent');
         }
 
-        $body = \Yii::$app->request->getBodyParams();
+        $body = $this->getBodyParams();
         $agent->latitude = $body['latitude'] ?? null;
         $agent->longitude = $body['longitude'] ?? null;
         $agent->last_seen_at = new \yii\db\Expression('NOW()');
@@ -56,11 +61,6 @@ class DeliveryAgentController extends ActiveController
         return $agent->getErrors();
     }
 
-    /**
-     * @OA\Get(path="/delivery-agent/nearby", summary="Find nearby delivery agents")
-     * @OA\Parameter(name="lat", in="query", @OA\Schema(type="number"))
-     * @OA\Parameter(name="lng", in="query", @OA\Schema(type="number"))
-     */
     public function actionNearby()
     {
         $lat = \Yii::$app->request->get('lat');

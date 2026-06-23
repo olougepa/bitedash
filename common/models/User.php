@@ -13,9 +13,10 @@ class User extends ActiveRecord
     public function rules()
     {
         return [
-            [['email', 'password_hash', 'role', 'status'], 'required'],
+            [['password_hash', 'role', 'status'], 'required'],
+            [['email', 'phone'], 'string'],
             ['email', 'email'],
-            ['email', 'unique'],
+            ['phone', 'string', 'max' => 50],
             ['role', 'in', 'range' => ['customer', 'restaurant_owner', 'delivery_agent', 'admin']],
             ['status', 'in', 'range' => ['pending', 'active', 'suspended', 'deleted']],
         ];
@@ -24,9 +25,13 @@ class User extends ActiveRecord
     public function fields()
     {
         $fields = parent::fields();
-        // remove sensitive fields
         unset($fields['password_hash']);
         unset($fields['password_hashed']);
         return $fields;
+    }
+
+    public static function findByUsername($username)
+    {
+        return static::findOne(['or', ['email' => $username], ['phone' => $username]]);
     }
 }

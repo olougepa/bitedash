@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class ApiService {
-  static const String _defaultBaseUrl = 'http://127.0.0.1:8000/v1';
+  static const String _defaultBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:8000/v1');
   final String baseUrl;
   final AuthService _auth = AuthService();
 
@@ -17,12 +17,36 @@ class ApiService {
     throw Exception('Failed to load restaurants');
   }
 
+  Future<dynamic> fetchRestaurant(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/restaurants/$id'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load restaurant');
+  }
+
   Future<List<dynamic>> fetchMenuForRestaurant(int restaurantId) async {
     final response = await http.get(Uri.parse('$baseUrl/menu-item?restaurant_id=$restaurantId'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
     throw Exception('Failed to load menu');
+  }
+
+  Future<List<dynamic>> fetchAllMenuItems() async {
+    final response = await http.get(Uri.parse('$baseUrl/menu-item'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    throw Exception('Failed to load menu items');
+  }
+
+  Future<List<dynamic>> fetchNearbyRiders(double lat, double lng) async {
+    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/nearby?lat=$lat&lng=$lng'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
   }
 
   Future<dynamic> submitOrder(Map<String, dynamic> payload) async {
@@ -71,7 +95,7 @@ class ApiService {
     final headers = {'Content-Type': 'application/json'};
     if (token != null) headers['Authorization'] = 'Bearer $token';
     final response = await http.patch(
-      Uri.parse('$baseUrl/notification/$notificationId'),
+      Uri.parse('$baseUrl/notifications/$notificationId'),
       headers: headers,
       body: jsonEncode({'is_read': true}),
     );
@@ -201,10 +225,33 @@ class ApiService {
     return false;
   }
 
-  Future<bool> register(String email, String password, String name) async {
+  Future<bool> loginWithPhone(String phone, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      body: {'phone': phone, 'password': password},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['access_token'] != null) {
+        await _auth.saveTokens(
+          data['access_token'],
+          data['refresh_token'],
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+    final body = {'email': email, 'password': password, 'name': name};
+    if (role != null) body['role'] = role;
+    if (documentType != null) body['document_type'] = documentType;
+    if (documentNumber != null) body['document_number'] = documentNumber;
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
-      body: {'email': email, 'password': password, 'name': name},
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
@@ -217,5 +264,153 @@ class ApiService {
       }
     }
     return false;
+  }
+
+  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+    final body = {'phone': phone, 'password': password, 'name': name, 'email': '$phone@bitedash.temp'};
+    if (role != null) body['role'] = role;
+    if (documentType != null) body['document_type'] = documentType;
+    if (documentNumber != null) body['document_number'] = documentNumber;
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data['access_token'] != null) {
+        await _auth.saveTokens(
+          data['access_token'],
+          data['refresh_token'],
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<List<dynamic>> fetchCoupons(int? restaurantId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/coupon${restaurantId != null ? '?restaurant_id=$restaurantId' : ''}'),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<dynamic> validateCoupon(String code) async {
+    final response = await http.get(Uri.parse('$baseUrl/coupon/check?code=$code'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return {'valid': false};
+  }
+
+  Future<void> createRiderRequest(int orderId, Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/rider-request'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+  }
+
+  Future<void> applyForRider(int riderRequestId, double? priceOffer) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/rider-request/apply'),
+      headers: headers,
+      body: jsonEncode({'rider_request_id': riderRequestId, 'price_offer': priceOffer}),
+    );
+  }
+
+  Future<void> acceptRiderApplication(int applicationId) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/rider-request/accept-application'),
+      headers: headers,
+      body: jsonEncode({'application_id': applicationId}),
+    );
+  }
+
+  Future<List<dynamic>> listRiderApplications(int riderRequestId) async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(
+      Uri.parse('$baseUrl/rider-request/$riderRequestId/applications'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<void> createReview(Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/review'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+  }
+
+  Future<void> updateKyc(String token, String role, String documentType, String documentNumber) async {
+    final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
+    await http.post(
+      Uri.parse('$baseUrl/kyc'),
+      headers: headers,
+      body: jsonEncode({'entity_type': role == 'restaurant_owner' ? 'restaurant' : 'delivery_agent', 'document_type': documentType, 'document_number': documentNumber}),
+    );
+  }
+
+  Future<List<dynamic>> fetchChats() async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/chat'), headers: headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<void> sendMessage(int orderId, String message) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/chat'),
+      headers: headers,
+      body: jsonEncode({'order_id': orderId, 'message': message}),
+    );
+  }
+
+  Future<List<dynamic>> fetchAds() async {
+    final response = await http.get(Uri.parse('$baseUrl/ad'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<List<dynamic>?> fetchChatsForOrder(int orderId, String? token) async {
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/chat?order_id=$orderId'), headers: headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return null;
   }
 }

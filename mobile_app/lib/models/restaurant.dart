@@ -17,12 +17,12 @@ class Restaurant {
 
   factory Restaurant.fromJson(Map<String, dynamic> json) {
     return Restaurant(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      description: json['description'] as String,
+      id: int.tryParse('${json['id']}') ?? 0,
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       address: json['address'] as String? ?? '',
-      latitude: (json['latitude'] ?? 0).toDouble(),
-      longitude: (json['longitude'] ?? 0).toDouble(),
+      latitude: double.tryParse('${json['latitude'] ?? 0}') ?? 0.0,
+      longitude: double.tryParse('${json['longitude'] ?? 0}') ?? 0.0,
     );
   }
 }

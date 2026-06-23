@@ -12,7 +12,7 @@ class MenuItemController extends ActiveController
 {
     public $modelClass = 'common\models\MenuItem';
 
-    public function behaviors()
+public function behaviors()
     {
         $behaviors = parent::behaviors();
         $behaviors['corsFilter'] = [
@@ -20,7 +20,7 @@ class MenuItemController extends ActiveController
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-                'Access-Control-Allow-Credentials' => true,
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;

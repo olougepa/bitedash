@@ -11,9 +11,6 @@ use common\models\Restaurant;
 use common\models\User;
 use common\models\DeliveryAgent;
 
-/**
- * @OA\Tag(name="Order", description="Order creation and management")
- */
 class OrderController extends ActiveController
 {
     public $modelClass = 'common\models\Order';
@@ -26,27 +23,42 @@ class OrderController extends ActiveController
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['POST', 'GET', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-                'Access-Control-Allow-Credentials' => true,
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;
     }
 
+    protected function verbs()
+    {
+        return [
+            'index' => ['GET', 'POST'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+            'customer-location' => ['PATCH'],
+            'tracking' => ['GET'],
+        ];
+    }
+
+    protected function getBodyParams()
+    {
+        $req = Yii::$app->request;
+        $contentType = $req->getHeaders()->get('Content-Type');
+        if ($contentType && stripos($contentType, 'application/json') !== false) {
+            $rawBody = file_get_contents('php://input');
+            return json_decode($rawBody, true) ?: [];
+        }
+        return $req->bodyParams;
+    }
+
     public function actions()
     {
         $actions = parent::actions();
+        $actions['index']['prepareDataProvider'] = [$this, 'actionIndex'];
         return $actions;
     }
 
-    /**
-     * @OA\Get(
-     *   path="/orders",
-     *   summary="List orders",
-     *   @OA\Parameter(name="status", in="query", @OA\Schema(type="string")),
-     *   @OA\Parameter(name="restaurant_id", in="query", @OA\Schema(type="integer")),
-     *   @OA\Response(response=200, description="List of orders")
-     * )
-     */
     public function actionIndex()
     {
         $request = Yii::$app->request;
@@ -83,18 +95,9 @@ class OrderController extends ActiveController
         return $query->orderBy(['created_at' => SORT_DESC])->all();
     }
 
-    /**
-     * @OA\Post(
-     *   path="/orders",
-     *   summary="Create order",
-     *   @OA\RequestBody(required=true, @OA\MediaType(mediaType="application/json")),
-     *   @OA\Response(response=201, description="Created order"),
-     *   @OA\Response(response=422, description="Validation failed")
-     * )
-     */
     public function actionCreate()
     {
-        $body = Yii::$app->request->post();
+        $body = $this->getBodyParams();
         $order = new Order();
         $order->load($body, '');
 
@@ -119,10 +122,6 @@ class OrderController extends ActiveController
         return $order->getErrors();
     }
 
-    /**
-     * Update customer location for an order
-     * @OA\Patch(path="/order/{id}/customer-location", summary="Update customer location for tracking")
-     */
     public function actionCustomerLocation($id)
     {
         $order = Order::findOne($id);
@@ -135,7 +134,7 @@ class OrderController extends ActiveController
             throw new \yii\web\ForbiddenHttpException('Not your order');
         }
 
-        $body = Yii::$app->request->getBodyParams();
+        $body = $this->getBodyParams();
         $order->customer_latitude = $body['latitude'] ?? null;
         $order->customer_longitude = $body['longitude'] ?? null;
 
@@ -146,10 +145,6 @@ class OrderController extends ActiveController
         return $order->getErrors();
     }
 
-    /**
-     * Get order with live tracking data
-     * @OA\Get(path="/order/{id}/tracking", summary="Get order tracking info")
-     */
     public function actionTracking($id)
     {
         $order = Order::findOne($id);

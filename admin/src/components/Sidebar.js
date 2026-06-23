@@ -5,6 +5,8 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import PeopleIcon from '@mui/icons-material/People';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { Link } from 'react-router-dom';
 import { fetchNotifications } from '../api';
 
@@ -13,6 +15,8 @@ const menuItems = [
   { label: 'Restaurants', icon: <RestaurantIcon />, path: '/restaurants' },
   { label: 'Orders', icon: <ShoppingCartIcon />, path: '/orders' },
   { label: 'Delivery Agents', icon: <LocalShippingIcon />, path: '/delivery-agents' },
+  { label: 'Users', icon: <PeopleIcon />, path: '/users' },
+  { label: 'KYC', icon: <VerifiedUserIcon />, path: '/kyc' },
   { label: 'POS Terminal', icon: <ShoppingCartIcon />, path: '/pos' },
   { label: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
 ];

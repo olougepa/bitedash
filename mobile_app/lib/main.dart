@@ -14,6 +14,10 @@ import 'screens/notifications_screen.dart';
 import 'screens/delivery_tracking_screen.dart';
 import 'screens/owner_pos_screen.dart';
 import 'screens/delivery_agent_screen.dart';
+import 'screens/promotions_screen.dart';
+import 'screens/receipt_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/kyc_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +49,7 @@ class BitedashApp extends StatelessWidget {
           ),
           initialRoute: '/',
           routes: {
-            '/': (ctx) => AuthGate(child: const HomeScreen()),
+            '/': (ctx) => const HomeScreen(),
             '/login': (ctx) => const LoginScreen(),
             '/register': (ctx) => const RegisterScreen(),
             '/profile': (ctx) => const ProfileScreen(),
@@ -56,26 +60,13 @@ class BitedashApp extends StatelessWidget {
             '/delivery-tracking': (ctx) => const DeliveryTrackingScreen(),
             '/owner-pos': (ctx) => const OwnerPosScreen(),
             '/delivery-agent': (ctx) => const DeliveryAgentScreen(),
+            '/promotions': (ctx) => const PromotionsScreen(),
+            '/receipt': (ctx) => const ReceiptScreen(order: {}),
+            '/chat': (ctx) => const ChatScreen(orderId: 0),
+            '/kyc': (ctx) => const KycScreen(role: 'restaurant_owner'),
           },
         );
       }),
     );
-  }
-}
-
-class AuthGate extends StatelessWidget {
-  final Widget child;
-  const AuthGate({required this.child, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-    if (auth.isInitializing) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (!auth.isAuthenticated) {
-      return const LoginScreen();
-    }
-    return child;
   }
 }

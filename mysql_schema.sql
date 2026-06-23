@@ -100,6 +100,8 @@ CREATE TABLE menu_items (
    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
    currency CHAR(3) NOT NULL DEFAULT 'USD',
    rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+   quantity INT UNSIGNED DEFAULT 0,
+   stock_quantity INT UNSIGNED DEFAULT 0,
    is_available TINYINT(1) NOT NULL DEFAULT 1,
    preparation_time INT NOT NULL DEFAULT 15,
    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -155,11 +157,12 @@ CREATE TABLE delivery_agents (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE orders (
-   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-   user_id BIGINT UNSIGNED NULL,
-   guest_email VARCHAR(255) NULL,
-   guest_token VARCHAR(255) NULL,
-   payment_stub TEXT NULL,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    guest_email VARCHAR(255) NULL,
+    guest_phone VARCHAR(50) NULL,
+    guest_token VARCHAR(255) NULL,
+    payment_stub TEXT NULL,
    restaurant_id BIGINT UNSIGNED NOT NULL,
    delivery_agent_id BIGINT UNSIGNED NULL,
    address_id BIGINT UNSIGNED NULL,
@@ -263,6 +266,52 @@ CREATE TABLE promotions (
    CONSTRAINT fk_promotions_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE rider_requests (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    customer_id BIGINT UNSIGNED,
+    customer_lat DECIMAL(10,8),
+    customer_lng DECIMAL(11,8),
+    status ENUM('pending','accepted','cancelled') NOT NULL DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_rider_request_order (order_id),
+    INDEX idx_rider_request_customer (customer_id),
+    CONSTRAINT fk_rider_requests_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_rider_requests_customer FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE rider_applications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    rider_request_id BIGINT UNSIGNED NOT NULL,
+    delivery_agent_id BIGINT UNSIGNED NOT NULL,
+    price_offer DECIMAL(10,2),
+    status ENUM('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_application_rider_request (rider_request_id),
+    INDEX idx_application_agent (delivery_agent_id),
+    CONSTRAINT fk_rider_applications_request FOREIGN KEY (rider_request_id) REFERENCES rider_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_rider_applications_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE coupons (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    restaurant_id BIGINT UNSIGNED NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    description TEXT,
+    discount_percent DECIMAL(5,2) DEFAULT NULL,
+    discount_amount DECIMAL(10,2) DEFAULT NULL,
+    valid_from DATETIME NOT NULL,
+    valid_until DATETIME NOT NULL,
+    max_uses INT UNSIGNED DEFAULT 0,
+    used_count INT UNSIGNED DEFAULT 0,
+    min_order_amount DECIMAL(10,2) DEFAULT 0.00,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_coupon_restaurant (restaurant_id),
+    INDEX idx_coupon_code (code),
+    CONSTRAINT fk_coupons_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE notifications (
    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
    user_id BIGINT UNSIGNED NULL,
@@ -277,15 +326,49 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE delivery_status_history (
-   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-   order_id BIGINT UNSIGNED NOT NULL,
-   status ENUM('pending','accepted','preparing','picked_up','delivering','completed','cancelled','failed') NOT NULL,
-   latitude DECIMAL(10,8),
-   longitude DECIMAL(11,8),
-   note VARCHAR(255),
-   recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   INDEX idx_delivery_status_order (order_id),
-   CONSTRAINT fk_delivery_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    status ENUM('pending','accepted','preparing','picked_up','delivering','completed','cancelled','failed') NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    note VARCHAR(255),
+    recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_delivery_status_order (order_id),
+    CONSTRAINT fk_delivery_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE ads (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    owner_id BIGINT UNSIGNED NULL,
+    agent_id BIGINT UNSIGNED NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    image_url VARCHAR(512),
+    target_type ENUM('restaurant','rider') NOT NULL,
+    status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    budget DECIMAL(10,2),
+    start_date DATETIME,
+    end_date DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ads_owner (owner_id),
+    INDEX idx_ads_agent (agent_id),
+    CONSTRAINT fk_ads_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ads_agent FOREIGN KEY (agent_id) REFERENCES delivery_agents(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE chat_messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    sender_id BIGINT UNSIGNED NOT NULL,
+    receiver_id BIGINT UNSIGNED NOT NULL,
+    message TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_chat_order (order_id),
+    INDEX idx_chat_sender (sender_id),
+    INDEX idx_chat_receiver (receiver_id),
+    CONSTRAINT fk_chat_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

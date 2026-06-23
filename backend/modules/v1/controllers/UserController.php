@@ -2,11 +2,9 @@
 namespace backend\modules\v1\controllers;
 
 use yii\rest\ActiveController;
+use yii\filters\Cors;
 use common\models\User;
 
-/**
- * @OA\Tag(name="User", description="User operations")
- */
 class UserController extends ActiveController
 {
     public $modelClass = 'common\models\User';
@@ -15,12 +13,19 @@ class UserController extends ActiveController
     {
         $behaviors = parent::behaviors();
         $behaviors['corsFilter'] = [
-            'class' => \yii\filters\Cors::class,
+            'class' => Cors::class,
             'cors' => [
                 'Origin' => ['*'],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+                'Access-Control-Allow-Headers' => ['Content-Type', 'Authorization', 'X-Requested-With'],
             ],
         ];
         return $behaviors;
+    }
+
+    public function actions()
+    {
+        $actions = parent::actions();
+        return $actions;
     }
 }
