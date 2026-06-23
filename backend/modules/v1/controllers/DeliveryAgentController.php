@@ -76,6 +76,20 @@ class DeliveryAgentController extends ActiveController
         return $agents;
     }
 
+    public function actionPrice()
+    {
+        $id = \Yii::$app->request->get('id');
+        $agent = $this->findModel($id);
+        $body = $this->getBodyParams();
+        if (isset($body['price_per_km'])) {
+            $agent->price_per_km = $body['price_per_km'];
+            if ($agent->save()) {
+                return ['status' => 'updated', 'price_per_km' => $agent->price_per_km];
+            }
+        }
+        return $agent->getErrors();
+    }
+
     protected function getCurrentUser()
     {
         $request = \Yii::$app->request;

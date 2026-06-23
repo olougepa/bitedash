@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Badge } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -13,6 +14,7 @@ import { fetchNotifications } from '../api';
 const menuItems = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { label: 'Restaurants', icon: <RestaurantIcon />, path: '/restaurants' },
+  { label: 'Menu Management', icon: <RestaurantMenuIcon />, path: '/menu-manager' },
   { label: 'Orders', icon: <ShoppingCartIcon />, path: '/orders' },
   { label: 'Delivery Agents', icon: <LocalShippingIcon />, path: '/delivery-agents' },
   { label: 'Users', icon: <PeopleIcon />, path: '/users' },

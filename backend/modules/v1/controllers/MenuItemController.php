@@ -12,7 +12,7 @@ class MenuItemController extends ActiveController
 {
     public $modelClass = 'common\models\MenuItem';
 
-public function behaviors()
+    public function behaviors()
     {
         $behaviors = parent::behaviors();
         $behaviors['corsFilter'] = [
@@ -24,5 +24,15 @@ public function behaviors()
             ],
         ];
         return $behaviors;
+    }
+
+    protected function verbs()
+    {
+        return [
+            'index' => ['GET'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+        ];
     }
 }

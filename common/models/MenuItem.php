@@ -15,8 +15,9 @@ class MenuItem extends ActiveRecord
         return [
             [['restaurant_id', 'name', 'price'], 'required'],
             ['name', 'string', 'max' => 255],
-            [['price', 'rating'], 'number'],
+            [['price', 'rating', 'quantity', 'stock_quantity'], 'number'],
             ['is_available', 'boolean'],
+            [['quantity', 'stock_quantity'], 'default', 'value' => null],
         ];
     }
 }

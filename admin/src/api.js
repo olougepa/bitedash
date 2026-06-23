@@ -93,6 +93,7 @@ export const deleteOrder = (id) => api.delete(`/order/${id}`);
 export const fetchDeliveryAgents = () => api.get('/delivery-agent');
 export const createDeliveryAgent = (agent) => api.post('/delivery-agent', agent);
 export const updateDeliveryAgent = (id, agent) => api.put(`/delivery-agent/${id}`, agent);
+export const updateDeliveryAgentPrice = (id, pricePerKm) => api.patch(`/delivery-agent/${id}/price`, { price_per_km: pricePerKm });
 export const deleteDeliveryAgent = (id) => api.delete(`/delivery-agent/${id}`);
 
 export const fetchNotifications = () => api.get('/notification');

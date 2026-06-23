@@ -15,6 +15,8 @@ class CartProvider extends ChangeNotifier {
 
   List<CartItem> get items => _items.values.toList();
 
+  int get itemCount => _items.length;
+
   void addItem(int id, String name, double price, {int? restaurantId}) {
     if (_items.containsKey(id)) {
       _items[id]!.quantity += 1;

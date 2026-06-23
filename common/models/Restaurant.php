@@ -19,4 +19,14 @@ class Restaurant extends ActiveRecord
             [['latitude', 'longitude'], 'number'],
         ];
     }
+
+    public function fields()
+    {
+        $fields = parent::fields();
+        $fields['is_verified'] = function () {
+            $user = User::findOne($this->owner_id);
+            return $user && $user->status === 'active' && $this->status === 'active';
+        };
+        return $fields;
+    }
 }

@@ -94,7 +94,9 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     final price = double.tryParse('${item['price']}') ?? 0.0;
                     final mealRating = double.tryParse('${item['rating'] ?? 0}') ?? 0.0;
                     final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
-                    final quantity = item['quantity'] ?? item['stock_quantity'] ?? 0;
+                    final qty = item['quantity'];
+                    final hasExplicitQuantity = qty != null;
+                    final isSoldOut = hasExplicitQuantity && (qty == 0);
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       child: ListTile(
@@ -107,28 +109,28 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                               Icon(Icons.star, color: Colors.orange, size: 14),
                               Text(' ${mealRating.toStringAsFixed(1)}', style: TextStyle(fontSize: 12, color: Colors.orange)),
                             ]),
-                            if (!isAvailable || quantity == 0)
+if (!isAvailable || isSoldOut)
                               Text('Sold out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        trailing: isAvailable && quantity != 0
-                            ? IconButton(
-                                icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange),
-                                onPressed: () {
+                            ],
+                          ),
+                          trailing: isAvailable && !isSoldOut
+                              ? IconButton(
+                                  icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange),
+                                  onPressed: () {
+                                    final cart = Provider.of<CartProvider>(context, listen: false);
+                                    cart.addItem(id, name, price, restaurantId: widget.restaurantId);
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                                  },
+                                )
+                              : const SizedBox.shrink(),
+                          enabled: isAvailable && !isSoldOut,
+                          onTap: isAvailable && !isSoldOut
+                              ? () {
                                   final cart = Provider.of<CartProvider>(context, listen: false);
                                   cart.addItem(id, name, price, restaurantId: widget.restaurantId);
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
-                                },
-                              )
-                            : const SizedBox.shrink(),
-                        enabled: isAvailable && quantity != 0,
-                        onTap: isAvailable && quantity != 0
-                            ? () {
-                                final cart = Provider.of<CartProvider>(context, listen: false);
-                                cart.addItem(id, name, price, restaurantId: widget.restaurantId);
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
-                              }
-                            : null,
+                                }
+                              : null,
                       ),
                     );
                   },

@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
-    final cart = Provider.of<CartProvider>(context);
+    final cart = context.watch<CartProvider>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('BiteDash'),
@@ -97,7 +97,7 @@ actions: auth.isAuthenticated
           if (cart.items.isNotEmpty)
             Positioned(
               right: 16,
-              bottom: 72,
+              bottom: 140,
               child: FloatingActionButton.extended(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
@@ -306,6 +306,7 @@ actions: auth.isAuthenticated
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         var restaurants = snapshot.data ?? [];
+        restaurants = restaurants.where((r) => r['status'] == 'active' || r['status'] == 'approved').toList();
         if (_restaurantSearchQuery.isNotEmpty) {
           restaurants = restaurants.where((r) => (r['name'] as String? ?? '').toLowerCase().contains(_restaurantSearchQuery.toLowerCase())).toList();
         }
@@ -318,8 +319,28 @@ actions: auth.isAuthenticated
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.restaurant, color: Colors.deepOrange)),
-                title: Text(restaurant['name'] ?? 'Restaurant'),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.deepOrange,
+                  child: Stack(
+                    children: [
+                      const Icon(Icons.restaurant, color: Colors.white),
+                      if (restaurant['status'] == 'active' || restaurant['status'] == 'approved')
+                        const Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Icon(Icons.verified, color: Colors.green, size: 12),
+                        ),
+                    ],
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    Text(restaurant['name'] ?? 'Restaurant'),
+                    const SizedBox(width: 4),
+                    if (restaurant['status'] == 'active' || restaurant['status'] == 'approved')
+                      const Icon(Icons.verified, color: Colors.green, size: 16),
+                  ],
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -375,27 +396,29 @@ actions: auth.isAuthenticated
             final price = double.tryParse('${item['price']}') ?? 0.0;
             final mealRating = double.tryParse('${item['rating'] ?? 0}') ?? 0.0;
             final restaurantName = restaurantMap['${item['restaurant_id']}'] ?? 'Unknown';
-            final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
-            final quantity = item['quantity'] ?? item['stock_quantity'] ?? 0;
+final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
+            final quantity = item['quantity'];
+            final hasExplicitQuantity = quantity != null;
+            final isSoldOut = hasExplicitQuantity && (quantity == 0);
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.restaurant_menu, color: Colors.deepOrange)),
                 title: Text(item['name'] ?? 'Meal'),
-subtitle: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     Text('\$${price.toStringAsFixed(2)}'),
-                     Row(children: [
-                       Icon(Icons.star, color: Colors.orange, size: 14),
-                       Text(' ${mealRating.toStringAsFixed(1)}', style: TextStyle(fontSize: 12, color: Colors.orange)),
-                     ]),
-                     Text('from $restaurantName', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                     if (!isAvailable || quantity == 0)
-                       Text('Sold out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                   ],
-                 ),
-                trailing: isAvailable && quantity != 0
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('\$${price.toStringAsFixed(2)}'),
+                    Row(children: [
+                      Icon(Icons.star, color: Colors.orange, size: 14),
+                      Text(' ${mealRating.toStringAsFixed(1)}', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                    ]),
+                    Text('from $restaurantName', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    if (!isAvailable || isSoldOut)
+                      Text('Sold out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                trailing: isAvailable && !isSoldOut
                     ? IconButton(
                         icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange),
                         onPressed: () {
@@ -410,8 +433,8 @@ subtitle: Column(
                         },
                       )
                     : const SizedBox.shrink(),
-                enabled: isAvailable && quantity != 0,
-                onTap: isAvailable && quantity != 0
+                enabled: isAvailable && !isSoldOut,
+                onTap: isAvailable && !isSoldOut
                     ? () {
                         final cart = Provider.of<CartProvider>(context, listen: false);
                         cart.addItem(

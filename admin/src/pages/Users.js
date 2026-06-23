@@ -17,16 +17,23 @@ import {
   Box,
   CircularProgress,
   MenuItem,
+  InputLabel,
+  FormControl,
+  Select,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import UploadIcon from '@mui/icons-material/Upload';
 import api from '../api';
 
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ id: null, email: '', full_name: '', role: 'customer', status: 'active' });
+  const [kycDialog, setKycDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [form, setForm] = useState({ id: null, email: '', full_name: '', role: 'customer', status: 'active', password: '' });
+  const [kycForm, setKycForm] = useState({ document_type: 'business_license', document_image_url: '' });
 
   const loadUsers = async () => {
     setLoading(true);
@@ -61,11 +68,18 @@ function Users() {
         full_name: user.full_name || '',
         role: user.role || 'customer',
         status: user.status || 'active',
+        password: '',
       });
     } else {
-      setForm({ id: null, email: '', full_name: '', role: 'customer', status: 'active' });
+      setForm({ id: null, email: '', full_name: '', role: 'customer', status: 'active', password: '' });
     }
     setOpen(true);
+  };
+
+  const openKycForm = (user) => {
+    setSelectedUser(user);
+    setKycForm({ document_type: user.role === 'restaurant_owner' ? 'business_license' : 'driver_license', document_image_url: '' });
+    setKycDialog(true);
   };
 
   const handleSave = async () => {
@@ -75,6 +89,7 @@ function Users() {
       role: form.role,
       status: form.status,
     };
+    if (form.password) payload.password = form.password;
     if (form.id) {
       await api.put(`/user/${form.id}`, payload);
     } else {
@@ -82,6 +97,20 @@ function Users() {
     }
     setOpen(false);
     loadUsers();
+  };
+
+  const handleSaveKyc = async () => {
+    if (selectedUser) {
+      const entityType = selectedUser.role === 'restaurant_owner' ? 'restaurant' : 'delivery_agent';
+      await api.post('/kyc', {
+        user_id: selectedUser.id,
+        entity_type: entityType,
+        document_type: kycForm.document_type,
+        document_image_url: kycForm.document_image_url,
+        status: 'approved',
+      });
+      setKycDialog(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -108,6 +137,11 @@ function Users() {
                 {users.map((user) => (
                   <ListItem key={user.id} divider secondaryAction={
                     <>
+                      {(user.role === 'restaurant_owner' || user.role === 'delivery_agent') && (
+                        <IconButton edge="end" aria-label="kyc" onClick={() => openKycForm(user)}>
+                          <UploadIcon />
+                        </IconButton>
+                      )}
                       <IconButton edge="end" aria-label="edit" onClick={() => openForm(user)}>
                         <EditIcon />
                       </IconButton>
@@ -165,6 +199,14 @@ function Users() {
             <MenuItem value="admin">Admin</MenuItem>
           </TextField>
           <TextField
+            fullWidth
+            label="Password"
+            margin="dense"
+            type="password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <TextField
             select
             fullWidth
             label="Status"
@@ -181,6 +223,36 @@ function Users() {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={kycDialog} onClose={() => setKycDialog(false)}>
+        <DialogTitle>Upload KYC Document</DialogTitle>
+        <DialogContent>
+          <TextField
+            select
+            fullWidth
+            label="Document Type"
+            margin="dense"
+            value={kycForm.document_type}
+            onChange={(e) => setKycForm({ ...kycForm, document_type: e.target.value })}
+          >
+            <MenuItem value="id_card">ID Card</MenuItem>
+            <MenuItem value="passport">Passport</MenuItem>
+            <MenuItem value="driver_license">Driver License</MenuItem>
+            <MenuItem value="business_license">Business License</MenuItem>
+          </TextField>
+          <TextField
+            fullWidth
+            label="Document Image URL"
+            margin="dense"
+            value={kycForm.document_image_url}
+            onChange={(e) => setKycForm({ ...kycForm, document_image_url: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setKycDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveKyc}>Save & Approve</Button>
         </DialogActions>
       </Dialog>
     </div>

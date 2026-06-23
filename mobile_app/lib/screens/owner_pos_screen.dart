@@ -192,14 +192,28 @@ class _OwnerPosScreenState extends State<OwnerPosScreen> {
                 itemBuilder: (context, index) {
                   final item = items[index] as Map<String, dynamic>;
                   final price = double.tryParse('${item['price'] ?? 0}') ?? 0;
+                  final qty = item['quantity'];
+                  final stockQty = item['stock_quantity'];
+                  final currentQty = qty ?? stockQty ?? 0;
+                  final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.restaurant_menu, color: Colors.deepOrange)),
+                      leading: CircleAvatar(
+                        backgroundColor: (currentQty > 0 || qty == null) && isAvailable ? Colors.green.shade100 : Colors.red.shade100,
+                        child: Icon((isAvailable && (currentQty > 0 || qty == null)) ? Icons.restaurant_menu : Icons.remove_shopping_cart, color: Colors.deepOrange),
+                      ),
                       title: Text(item['name'] ?? 'Item'),
-                      subtitle: Text('\$${price.toStringAsFixed(2)}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('\$${price.toStringAsFixed(2)}'),
+                          Text('Stock: ${qty == null ? 'Unlimited' : currentQty} | Available: ${isAvailable ? 'Yes' : 'No'}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        ],
+                      ),
                       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () {}),
+                        IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () => _addMenuItem()),
+                        IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editQuantity(item)),
                         IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () {}),
                       ]),
                     ),
@@ -207,6 +221,144 @@ class _OwnerPosScreenState extends State<OwnerPosScreen> {
                 },
               );
       },
+    );
+  }
+
+  void _addMenuItem() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _AddMenuItemDialog(onSave: _refreshOrders),
+    );
+  }
+
+  void _editQuantity(Map<String, dynamic> item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _QuantityEditDialog(item: item, onSave: _refreshOrders),
+    );
+  }
+}
+
+class _QuantityEditDialog extends StatefulWidget {
+  final Map<String, dynamic> item;
+  final VoidCallback onSave;
+  const _QuantityEditDialog({required this.item, required this.onSave});
+
+  @override
+  State<_QuantityEditDialog> createState() => _QuantityEditDialogState();
+}
+
+class _QuantityEditDialogState extends State<_QuantityEditDialog> {
+  final _qtyController = TextEditingController();
+  bool _isAvailable = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _qtyController.text = '${widget.item['quantity'] ?? widget.item['stock_quantity'] ?? 0}';
+    _isAvailable = widget.item['is_available'] == 1 || widget.item['is_available'] == true;
+  }
+
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Quantity'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Item: ${widget.item['name']}'),
+          TextField(
+            controller: _qtyController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Available Quantity'),
+          ),
+          SwitchListTile(
+            title: const Text('Available'),
+            value: _isAvailable,
+            onChanged: (v) => setState(() => _isAvailable = v),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () async {
+            final api = Provider.of<ApiService>(context, listen: false);
+            final qty = int.tryParse(_qtyController.text) ?? 0;
+            await api.updateMenuItem(widget.item['id'] as int, {'quantity': qty, 'is_available': _isAvailable ? 1 : 0});
+            widget.onSave();
+            Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddMenuItemDialog extends StatefulWidget {
+  final VoidCallback onSave;
+  const _AddMenuItemDialog({required this.onSave});
+
+  @override
+  State<_AddMenuItemDialog> createState() => _AddMenuItemDialogState();
+}
+
+class _AddMenuItemDialogState extends State<_AddMenuItemDialog> {
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _descController = TextEditingController();
+  final _qtyController = TextEditingController();
+  bool _isAvailable = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _descController.dispose();
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Menu Item'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Item Name')),
+          TextField(controller: _priceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
+          TextField(controller: _descController, maxLines: 2, decoration: const InputDecoration(labelText: 'Description')),
+          TextField(controller: _qtyController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity (leave empty for unlimited)')),
+          SwitchListTile(title: const Text('Available'), value: _isAvailable, onChanged: (v) => setState(() => _isAvailable = v)),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () async {
+            final api = Provider.of<ApiService>(context, listen: false);
+            final qty = _qtyController.text.isEmpty ? null : int.tryParse(_qtyController.text) ?? 0;
+            await api.createMenuItem({
+              'name': _nameController.text,
+              'price': double.tryParse(_priceController.text) ?? 0,
+              'description': _descController.text,
+              'quantity': qty,
+              'is_available': _isAvailable ? 1 : 0,
+            });
+            widget.onSave();
+            Navigator.pop(context);
+          },
+          child: const Text('Add'),
+        ),
+      ],
     );
   }
 }

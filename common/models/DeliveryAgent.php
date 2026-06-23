@@ -16,6 +16,7 @@ class DeliveryAgent extends ActiveRecord
             [['user_id', 'vehicle_type'], 'required'],
             ['vehicle_type', 'in', 'range' => ['bike', 'car', 'taxi', 'scooter']],
             ['rating', 'number'],
+            ['price_per_km', 'number'],
             ['is_active', 'boolean'],
             [['latitude', 'longitude'], 'number'],
         ];
@@ -34,6 +35,13 @@ class DeliveryAgent extends ActiveRecord
         };
         $fields['phone'] = function () {
             return $this->user ? $this->user->phone : null;
+        };
+        $fields['status'] = function () {
+            return $this->user ? $this->user->status : null;
+        };
+        $fields['is_verified'] = function () {
+            $user = $this->user;
+            return $user && $user->status === 'active';
         };
         return $fields;
     }

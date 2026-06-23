@@ -15,17 +15,22 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import {
   fetchDeliveryAgents,
   createDeliveryAgent,
   updateDeliveryAgent,
+  updateDeliveryAgentPrice,
   deleteDeliveryAgent,
 } from '../api';
 
 function DeliveryAgents() {
   const [agents, setAgents] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ id: null, name: '', vehicle_type: '', rating: 0 });
+  const [priceDialog, setPriceDialog] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [form, setForm] = useState({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50 });
+  const [priceForm, setPriceForm] = useState({ price_per_km: 1.50 });
 
   const loadAgents = async () => {
     const response = await fetchDeliveryAgents();
@@ -43,11 +48,18 @@ function DeliveryAgents() {
         name: agent.name || '',
         vehicle_type: agent.vehicle_type || '',
         rating: agent.rating || 0,
+        price_per_km: agent.price_per_km || 1.50,
       });
     } else {
-      setForm({ id: null, name: '', vehicle_type: '', rating: 0 });
+      setForm({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50 });
     }
     setOpen(true);
+  };
+
+  const openPriceForm = (agent) => {
+    setSelectedAgent(agent);
+    setPriceForm({ price_per_km: agent.price_per_km || 1.50 });
+    setPriceDialog(true);
   };
 
   const handleSave = async () => {
@@ -55,6 +67,7 @@ function DeliveryAgents() {
       name: form.name,
       vehicle_type: form.vehicle_type,
       rating: form.rating,
+      price_per_km: form.price_per_km,
     };
     if (form.id) {
       await updateDeliveryAgent(form.id, payload);
@@ -65,10 +78,19 @@ function DeliveryAgents() {
     loadAgents();
   };
 
+  const handlePriceSave = async () => {
+    if (selectedAgent) {
+      await updateDeliveryAgentPrice(selectedAgent.id, priceForm.price_per_km);
+    }
+    setPriceDialog(false);
+    loadAgents();
+  };
+
   const handleDelete = async (id) => {
     await deleteDeliveryAgent(id);
     loadAgents();
   };
+
   return (
     <div>
       <Typography variant="h4" gutterBottom>
@@ -82,6 +104,9 @@ function DeliveryAgents() {
           {agents.map((agent) => (
             <ListItem key={agent.id} secondaryAction={
               <>
+                <IconButton edge="end" aria-label="price" onClick={() => openPriceForm(agent)}>
+                  <AttachMoneyIcon />
+                </IconButton>
                 <IconButton edge="end" aria-label="edit" onClick={() => openForm(agent)}>
                   <EditIcon />
                 </IconButton>
@@ -92,7 +117,7 @@ function DeliveryAgents() {
             }>
               <ListItemText
                 primary={agent.name}
-                secondary={`${agent.vehicle_type || 'Vehicle not set'} · Rating: ${agent.rating || 0}`}
+                secondary={`${agent.vehicle_type || 'Vehicle not set'} · Rating: ${agent.rating || 0} · $${agent.price_per_km || 1.5}/km`}
               />
             </ListItem>
           ))}
@@ -124,10 +149,36 @@ function DeliveryAgents() {
             value={form.rating}
             onChange={(e) => setForm({ ...form, rating: parseFloat(e.target.value) || 0 })}
           />
+          <TextField
+            fullWidth
+            type="number"
+            label="Price per km ($)"
+            margin="dense"
+            value={form.price_per_km}
+            onChange={(e) => setForm({ ...form, price_per_km: parseFloat(e.target.value) || 0 })}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={priceDialog} onClose={() => setPriceDialog(false)}>
+        <DialogTitle>Update Price per km</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            type="number"
+            label="Price per km ($)"
+            margin="dense"
+            value={priceForm.price_per_km}
+            onChange={(e) => setPriceForm({ price_per_km: parseFloat(e.target.value) || 0 })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPriceDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handlePriceSave}>Save</Button>
         </DialogActions>
       </Dialog>
     </div>

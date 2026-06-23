@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Restaurants from './pages/Restaurants';
 import Orders from './pages/Orders';
+import MenuManager from './pages/MenuManager';
 import DeliveryAgents from './pages/DeliveryAgents';
 import Users from './pages/Users';
 import Kyc from './pages/Kyc';
@@ -56,6 +57,14 @@ function App() {
             element={
               <RequireAuth>
                 <Orders />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/menu-manager"
+            element={
+              <RequireAuth>
+                <MenuManager />
               </RequireAuth>
             }
           />

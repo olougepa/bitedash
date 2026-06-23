@@ -9,12 +9,20 @@ class ApiService {
 
   ApiService({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBaseUrl;
 
-  Future<List<dynamic>> fetchRestaurants() async {
-    final response = await http.get(Uri.parse('$baseUrl/restaurant'));
+Future<List<dynamic>> fetchRestaurants() async {
+    final response = await http.get(Uri.parse('$baseUrl/restaurant?status=active'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
     throw Exception('Failed to load restaurants');
+  }
+
+  Future<List<dynamic>> fetchNearbyRiders(double lat, double lng) async {
+    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/nearby?lat=$lat&lng=$lng'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
   }
 
   Future<dynamic> fetchRestaurant(int id) async {
@@ -39,14 +47,6 @@ class ApiService {
       return jsonDecode(response.body) as List<dynamic>;
     }
     throw Exception('Failed to load menu items');
-  }
-
-  Future<List<dynamic>> fetchNearbyRiders(double lat, double lng) async {
-    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/nearby?lat=$lat&lng=$lng'));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as List<dynamic>;
-    }
-    return [];
   }
 
   Future<dynamic> submitOrder(Map<String, dynamic> payload) async {
@@ -402,6 +402,39 @@ class ApiService {
       return jsonDecode(response.body) as List<dynamic>;
     }
     return [];
+  }
+
+  Future<void> updateMenuItem(int id, Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.patch(
+      Uri.parse('$baseUrl/menu-items/$id'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+  }
+
+  Future<void> updateDeliveryAgentPrice(int id, double pricePerKm) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.patch(
+      Uri.parse('$baseUrl/delivery-agents/$id'),
+      headers: headers,
+      body: jsonEncode({'price_per_km': pricePerKm}),
+    );
+  }
+
+  Future<void> createMenuItem(Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.post(
+      Uri.parse('$baseUrl/menu-items'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
   }
 
   Future<List<dynamic>?> fetchChatsForOrder(int orderId, String? token) async {
