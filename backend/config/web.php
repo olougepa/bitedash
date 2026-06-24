@@ -27,7 +27,7 @@ return [
             'rules' => [
                 [
                     'class' => 'yii\rest\UrlRule',
-                    'controller' => ['v1/restaurant', 'v1/order', 'v1/user', 'v1/delivery-agent', 'v1/payment', 'v1/notification', 'v1/menu-item', 'v1/auth', 'v1/docs', 'v1/kyc', 'v1/rider-request', 'v1/coupon', 'v1/review', 'v1/ad', 'v1/chat'],
+                    'controller' => ['v1/restaurant', 'v1/order', 'v1/user', 'v1/delivery-agent', 'v1/payment', 'v1/notification', 'v1/menu-item', 'v1/auth', 'v1/docs', 'v1/kyc', 'v1/rider-request', 'v1/coupon', 'v1/review', 'v1/ad', 'v1/chat', 'v1/city', 'v1/settings', 'v1/price-request', 'v1/user-city-preference'],
                 ],
             ],
         ],

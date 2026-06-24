@@ -23,7 +23,11 @@ class _LoginScreenState extends State<LoginScreen> {
         ? await auth.loginWithPhone(_phoneController.text.trim(), _passwordController.text.trim())
         : await auth.login(_emailController.text.trim(), _passwordController.text.trim());
     setState(() => _loading = false);
-    if (!ok) {
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Welcome back!')));
+      Navigator.pushReplacementNamed(context, '/');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login failed')));
     }
   }

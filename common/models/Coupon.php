@@ -13,8 +13,9 @@ class Coupon extends ActiveRecord
     public function rules()
     {
         return [
-            [['restaurant_id', 'code', 'valid_from', 'valid_until'], 'required'],
+            [['code', 'valid_from', 'valid_until'], 'required'],
             ['restaurant_id', 'integer'],
+            ['delivery_agent_id', 'integer'],
             ['code', 'string', 'max' => 100],
             ['description', 'string'],
             ['discount_percent', 'number', 'min' => 0, 'max' => 100],
@@ -29,5 +30,10 @@ class Coupon extends ActiveRecord
     public function getRestaurant()
     {
         return $this->hasOne(Restaurant::class, ['id' => 'restaurant_id']);
+    }
+
+    public function getDeliveryAgent()
+    {
+        return $this->hasOne(DeliveryAgent::class, ['id' => 'delivery_agent_id']);
     }
 }

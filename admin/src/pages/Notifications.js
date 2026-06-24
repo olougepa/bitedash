@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Typography,
   Paper,
@@ -12,6 +12,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { fetchNotifications, createNotification, deleteNotification } from '../api';
 
@@ -19,21 +21,43 @@ function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', message: '', category: 'all' });
+  const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
 
-  const loadNotifications = async () => {
-    const response = await fetchNotifications();
-    setNotifications(response.data || []);
-  };
+  const showSnack = (message, severity = 'success') => setSnack({ open: true, message, severity });
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await fetchNotifications();
+      setNotifications(response.data || []);
+    } catch (e) {
+      showSnack('Failed to load notifications', 'error');
+    }
+  }, []);
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
   const handleSave = async () => {
-    await createNotification(form);
-    setOpen(false);
-    setForm({ title: '', message: '', category: 'all' });
-    loadNotifications();
+    try {
+      await createNotification(form);
+      showSnack('Notification created');
+      setOpen(false);
+      setForm({ title: '', message: '', category: 'all' });
+      loadNotifications();
+    } catch (e) {
+      showSnack('Failed to create notification', 'error');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteNotification(id);
+      showSnack('Notification deleted');
+      loadNotifications();
+    } catch (e) {
+      showSnack('Failed to delete notification', 'error');
+    }
   };
 
   return (
@@ -53,14 +77,19 @@ function NotificationsPage() {
                 secondary={`${notification.message} · ${notification.category}`}
               />
               <Chip label={notification.category} />
-              <Button color="error" onClick={() => deleteNotification(notification.id)}>
-                Delete
-              </Button>
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
-      <Dialog open={open} onClose={() => setOpen(false)}>
+<Button color="error" onClick={() => handleDelete(notification.id)}>
+                 Delete
+               </Button>
+             </ListItem>
+           ))}
+         </List>
+       </Paper>
+       <Snackbar open={snack.open} autoHideDuration={6000} onClose={() => setSnack({ ...snack, open: false })}>
+         <Alert severity={snack.severity} onClose={() => setSnack({ ...snack, open: false })}>
+           {snack.message}
+         </Alert>
+       </Snackbar>
+       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Create Notification</DialogTitle>
         <DialogContent>
           <TextField

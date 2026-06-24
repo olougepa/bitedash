@@ -60,8 +60,8 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
-    final success = await apiService.register(email, password, name, role: role, documentType: documentType, documentNumber: documentNumber);
+  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber, int? cityId}) async {
+    final success = await apiService.register(email, password, name, role: role, documentType: documentType, documentNumber: documentNumber, cityId: cityId);
     if (success) {
       _token = await _authService.getToken();
       try {
@@ -74,8 +74,8 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
-    final success = await apiService.registerWithPhone(phone, password, name, role: role, documentType: documentType, documentNumber: documentNumber);
+  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber, int? cityId}) async {
+    final success = await apiService.registerWithPhone(phone, password, name, role: role, documentType: documentType, documentNumber: documentNumber, cityId: cityId);
     if (success) {
       _token = await _authService.getToken();
       try {

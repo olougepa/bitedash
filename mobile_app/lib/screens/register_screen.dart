@@ -28,10 +28,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ok = await auth.register(_email.text.trim(), _password.text.trim(), _name.text, role: _role);
     }
     setState(() => _loading = false);
-    if (!ok) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration failed')));
-      }
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created! Pending approval.')));
+      Navigator.pushReplacementNamed(context, '/');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration failed')));
     }
   }
 

@@ -110,4 +110,28 @@ export const fetchKycRecords = () => api.get('/kyc');
 export const approveKyc = (id) => api.put(`/kyc/${id}`, { status: 'approved' });
 export const rejectKyc = (id) => api.put(`/kyc/${id}`, { status: 'rejected' });
 
+export const fetchCities = () => api.get('/city');
+export const createCity = (city) => api.post('/city', city);
+export const updateCity = (id, city) => api.put(`/city/${id}`, city);
+export const deleteCity = (id) => api.delete(`/city/${id}`);
+
+export const fetchCoupons = () => api.get('/coupon');
+export const createCoupon = (coupon) => api.post('/coupon', coupon);
+export const updateCoupon = (id, coupon) => api.put(`/coupon/${id}`, coupon);
+export const deleteCoupon = (id) => api.delete(`/coupon/${id}`);
+
+export const fetchAds = () => api.get('/ad');
+export const createAd = (ad) => api.post('/ad', ad);
+export const updateAd = (id, ad) => api.put(`/ad/${id}`, ad);
+export const deleteAd = (id) => api.delete(`/ad/${id}`);
+export const approveAd = (id) => api.patch(`/ad/${id}/approve`);
+export const rejectAd = (id, remark) => api.patch(`/ad/${id}/reject`, { admin_remark: remark });
+
+export const fetchSystemSettings = () => api.get('/settings');
+export const updateSystemSetting = (key, value) => api.post('/settings', { setting_key: key, setting_value: value });
+
+export const fetchPriceRequests = () => api.get('/price-request');
+export const approvePriceRequest = (id) => api.put(`/price-request/${id}`, { status: 'approved' });
+export const rejectPriceRequest = (id, remark) => api.put(`/price-request/${id}`, { status: 'rejected', admin_remark: remark });
+
 export default api;

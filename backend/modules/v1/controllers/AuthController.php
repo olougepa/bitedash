@@ -110,6 +110,7 @@ class AuthController extends Controller
         $password = $this->getBodyParam('password');
         $name = $this->getBodyParam('name', $phone ?? $email);
         $role = $this->getBodyParam('role', 'customer');
+        $cityId = $this->getBodyParam('city_id');
         if (!$phone && !$email) {
             Yii::$app->response->statusCode = 400;
             return ['error' => 'missing_fields'];
@@ -129,6 +130,9 @@ class AuthController extends Controller
         $user->full_name = $name;
         $user->role = in_array($role, ['restaurant_owner', 'delivery_agent']) ? $role : 'customer';
         $user->status = 'active';
+        if ($cityId) {
+            $user->city_id = $cityId;
+        }
         if (!$user->save()) {
             Yii::$app->response->statusCode = 500;
             return ['error' => 'save_failed', 'details' => $user->errors];

@@ -9,16 +9,18 @@ class ApiService {
 
   ApiService({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBaseUrl;
 
-Future<List<dynamic>> fetchRestaurants() async {
-    final response = await http.get(Uri.parse('$baseUrl/restaurant?status=active'));
+Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
+    final query = cityId != null ? '?status=active&city_id=$cityId' : '?status=active';
+    final response = await http.get(Uri.parse('$baseUrl/restaurant$query'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
     throw Exception('Failed to load restaurants');
   }
 
-  Future<List<dynamic>> fetchNearbyRiders(double lat, double lng) async {
-    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/nearby?lat=$lat&lng=$lng'));
+  Future<List<dynamic>> fetchNearbyRiders(double lat, double lng, {int? cityId}) async {
+    final query = cityId != null ? '?lat=$lat&lng=$lng&city_id=$cityId' : '?lat=$lat&lng=$lng';
+    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/nearby$query'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
@@ -41,8 +43,9 @@ Future<List<dynamic>> fetchRestaurants() async {
     throw Exception('Failed to load menu');
   }
 
-  Future<List<dynamic>> fetchAllMenuItems() async {
-    final response = await http.get(Uri.parse('$baseUrl/menu-item'));
+  Future<List<dynamic>> fetchAllMenuItems({int? cityId}) async {
+    final query = cityId != null ? '?city_id=$cityId' : '';
+    final response = await http.get(Uri.parse('$baseUrl/menu-item$query'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
@@ -243,11 +246,12 @@ Future<List<dynamic>> fetchRestaurants() async {
     return false;
   }
 
-  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+  Future<bool> register(String email, String password, String name, {String? role, String? documentType, String? documentNumber, int? cityId}) async {
     final body = {'email': email, 'password': password, 'name': name};
     if (role != null) body['role'] = role;
     if (documentType != null) body['document_type'] = documentType;
     if (documentNumber != null) body['document_number'] = documentNumber;
+    if (cityId != null) body['city_id'] = cityId.toString();
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
@@ -266,11 +270,12 @@ Future<List<dynamic>> fetchRestaurants() async {
     return false;
   }
 
-  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber}) async {
+  Future<bool> registerWithPhone(String phone, String password, String name, {String? role, String? documentType, String? documentNumber, int? cityId}) async {
     final body = {'phone': phone, 'password': password, 'name': name, 'email': '$phone@bitedash.temp'};
     if (role != null) body['role'] = role;
     if (documentType != null) body['document_type'] = documentType;
     if (documentNumber != null) body['document_number'] = documentNumber;
+    if (cityId != null) body['city_id'] = cityId.toString();
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
@@ -289,14 +294,22 @@ Future<List<dynamic>> fetchRestaurants() async {
     return false;
   }
 
-  Future<List<dynamic>> fetchCoupons(int? restaurantId) async {
+  Future<List<dynamic>> fetchCoupons(int? restaurantId, {int? agentId}) async {
+    final queryParams = [];
+    if (restaurantId != null) queryParams.add('restaurant_id=$restaurantId');
+    if (agentId != null) queryParams.add('agent_id=$agentId');
+    final query = queryParams.isEmpty ? '' : '?${queryParams.join('&')}';
     final response = await http.get(
-      Uri.parse('$baseUrl/coupon${restaurantId != null ? '?restaurant_id=$restaurantId' : ''}'),
+      Uri.parse('$baseUrl/coupon$query'),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
     return [];
+  }
+
+  Future<List<dynamic>> fetchCouponsByAgent(int agentId) async {
+    return fetchCoupons(null, agentId: agentId);
   }
 
   Future<dynamic> validateCoupon(String code) async {
@@ -445,5 +458,38 @@ Future<List<dynamic>> fetchRestaurants() async {
       return jsonDecode(response.body) as List<dynamic>;
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>> fetchSystemSettings() async {
+    final response = await http.get(Uri.parse('$baseUrl/settings'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data as List<dynamic>).fold<Map<String, dynamic>>({}, (map, item) {
+        final Map<String, dynamic> settingsItem = item as Map<String, dynamic>;
+        map[settingsItem['setting_key'] as String] = settingsItem['setting_value'];
+        return map;
+      });
+    }
+    return {};
+  }
+
+  Future<List<dynamic>> fetchCities() async {
+    final response = await http.get(Uri.parse('$baseUrl/city'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    }
+    return [];
+  }
+
+  Future<void> updateUserCity(int? cityId) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.put(
+      Uri.parse('$baseUrl/user-city-preference'),
+      headers: headers,
+      body: jsonEncode({'city_id': cityId}),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update city');
   }
 }

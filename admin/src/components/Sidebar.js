@@ -8,6 +8,10 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PeopleIcon from '@mui/icons-material/People';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import SettingsIcon from '@mui/icons-material/Settings';
+import LocationCityIcon from '@mui/icons-material/LocationCity';
 import { Link } from 'react-router-dom';
 import { fetchNotifications } from '../api';
 
@@ -19,6 +23,11 @@ const menuItems = [
   { label: 'Delivery Agents', icon: <LocalShippingIcon />, path: '/delivery-agents' },
   { label: 'Users', icon: <PeopleIcon />, path: '/users' },
   { label: 'KYC', icon: <VerifiedUserIcon />, path: '/kyc' },
+  { label: 'Coupons', icon: <LocalOfferIcon />, path: '/coupons' },
+  { label: 'Ads', icon: <CampaignIcon />, path: '/ads' },
+  { label: 'Cities', icon: <LocationCityIcon />, path: '/cities' },
+  { label: 'System Settings', icon: <SettingsIcon />, path: '/settings' },
+  { label: 'Price Requests', icon: <LocalOfferIcon />, path: '/price-requests' },
   { label: 'POS Terminal', icon: <ShoppingCartIcon />, path: '/pos' },
   { label: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
 ];

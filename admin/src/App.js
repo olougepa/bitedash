@@ -12,6 +12,11 @@ import Kyc from './pages/Kyc';
 import Login from './pages/Login';
 import PosTerminal from './pages/PosTerminal';
 import NotificationsPage from './pages/Notifications';
+import Cities from './pages/Cities';
+import Coupons from './pages/Coupons';
+import Ads from './pages/Ads';
+import Settings from './pages/Settings';
+import PriceRequests from './pages/PriceRequests';
 import api from './api';
 
 function RequireAuth({ children }) {
@@ -105,6 +110,46 @@ function App() {
             element={
               <RequireAuth>
                 <NotificationsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cities"
+            element={
+              <RequireAuth>
+                <Cities />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/coupons"
+            element={
+              <RequireAuth>
+                <Coupons />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/ads"
+            element={
+              <RequireAuth>
+                <Ads />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <Settings />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/price-requests"
+            element={
+              <RequireAuth>
+                <PriceRequests />
               </RequireAuth>
             }
           />

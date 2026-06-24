@@ -18,6 +18,9 @@ DROP TABLE IF EXISTS menu_items;
 DROP TABLE IF EXISTS menu_categories;
 DROP TABLE IF EXISTS restaurants;
 DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS price_requests;
+DROP TABLE IF EXISTS system_settings;
+DROP TABLE IF EXISTS cities;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -29,6 +32,26 @@ CREATE TABLE users (
    role ENUM('customer','restaurant_owner','delivery_agent','admin') NOT NULL DEFAULT 'customer',
    status ENUM('pending','active','suspended','deleted') NOT NULL DEFAULT 'pending',
    location_enabled TINYINT(1) NOT NULL DEFAULT 1,
+   city_id BIGINT UNSIGNED NULL,
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   INDEX idx_users_city (city_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE cities (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   name VARCHAR(100) NOT NULL,
+   country VARCHAR(100) NOT NULL,
+   latitude DECIMAL(10,8),
+   longitude DECIMAL(11,8),
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   UNIQUE KEY uq_city_country (name, country)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE system_settings (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   setting_key VARCHAR(100) NOT NULL UNIQUE,
+   setting_value TEXT NOT NULL,
    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -72,12 +95,15 @@ CREATE TABLE restaurants (
    is_open TINYINT(1) NOT NULL DEFAULT 0,
    latitude DECIMAL(10,8),
    longitude DECIMAL(11,8),
+   city_id BIGINT UNSIGNED NULL,
    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
    UNIQUE KEY uq_restaurant_owner_name (owner_id, name),
    INDEX idx_restaurant_owner (owner_id),
+   INDEX idx_restaurants_city (city_id),
    CONSTRAINT fk_restaurants_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-   CONSTRAINT fk_restaurants_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL
+   CONSTRAINT fk_restaurants_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+   CONSTRAINT fk_restaurants_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE menu_categories (
@@ -104,12 +130,15 @@ CREATE TABLE menu_items (
    stock_quantity INT UNSIGNED DEFAULT 0,
    is_available TINYINT(1) NOT NULL DEFAULT 1,
    preparation_time INT NOT NULL DEFAULT 15,
+   city_id BIGINT UNSIGNED NULL,
    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
    INDEX idx_menu_item_restaurant (restaurant_id),
    INDEX idx_menu_item_category (category_id),
+   INDEX idx_menu_items_city (city_id),
    CONSTRAINT fk_menu_items_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
-   CONSTRAINT fk_menu_items_category FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL
+   CONSTRAINT fk_menu_items_category FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL,
+   CONSTRAINT fk_menu_items_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE payment_methods (
@@ -146,14 +175,41 @@ CREATE TABLE delivery_agents (
    vehicle_registration VARCHAR(100),
    rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
    is_active TINYINT(1) NOT NULL DEFAULT 1,
+   city_id BIGINT UNSIGNED NULL,
    latitude DECIMAL(10,8),
    longitude DECIMAL(11,8),
    last_seen_at DATETIME NULL,
+   price_per_km DECIMAL(10,2) NOT NULL DEFAULT 1.50,
    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
    INDEX idx_delivery_agent_user (user_id),
    INDEX idx_delivery_agent_location (latitude, longitude),
-   CONSTRAINT fk_delivery_agents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+   INDEX idx_delivery_agents_city (city_id),
+   CONSTRAINT fk_delivery_agents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+   CONSTRAINT fk_delivery_agents_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE price_requests (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   delivery_agent_id BIGINT UNSIGNED NOT NULL,
+   proposed_price DECIMAL(10,2) NOT NULL,
+   admin_remark TEXT,
+   status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   INDEX idx_price_requests_agent (delivery_agent_id),
+   CONSTRAINT fk_price_requests_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE user_city_preferences (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   user_id BIGINT UNSIGNED NOT NULL,
+   city_id BIGINT UNSIGNED NOT NULL,
+   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   UNIQUE KEY uq_user_city (user_id),
+   INDEX idx_user_city_pref (user_id),
+   CONSTRAINT fk_user_city_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+   CONSTRAINT fk_user_city_prefs_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE orders (
@@ -294,22 +350,24 @@ CREATE TABLE rider_applications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE coupons (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    restaurant_id BIGINT UNSIGNED NOT NULL,
-    code VARCHAR(100) NOT NULL,
-    description TEXT,
-    discount_percent DECIMAL(5,2) DEFAULT NULL,
-    discount_amount DECIMAL(10,2) DEFAULT NULL,
-    valid_from DATETIME NOT NULL,
-    valid_until DATETIME NOT NULL,
-    max_uses INT UNSIGNED DEFAULT 0,
-    used_count INT UNSIGNED DEFAULT 0,
-    min_order_amount DECIMAL(10,2) DEFAULT 0.00,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_coupon_restaurant (restaurant_id),
-    INDEX idx_coupon_code (code),
-    CONSTRAINT fk_coupons_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     restaurant_id BIGINT UNSIGNED NULL,
+     delivery_agent_id BIGINT UNSIGNED NULL,
+     code VARCHAR(100) NOT NULL,
+     description TEXT,
+     discount_percent DECIMAL(5,2) DEFAULT NULL,
+     discount_amount DECIMAL(10,2) DEFAULT NULL,
+     valid_from DATETIME NOT NULL,
+     valid_until DATETIME NOT NULL,
+     max_uses INT UNSIGNED DEFAULT 0,
+     used_count INT UNSIGNED DEFAULT 0,
+     min_order_amount DECIMAL(10,2) DEFAULT 0.00,
+     is_active TINYINT(1) NOT NULL DEFAULT 1,
+     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     INDEX idx_coupon_restaurant (restaurant_id),
+     INDEX idx_coupon_agent (delivery_agent_id),
+     CONSTRAINT fk_coupons_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+     CONSTRAINT fk_coupons_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE notifications (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Typography,
   Paper,
@@ -20,6 +20,8 @@ import {
   InputLabel,
   FormControl,
   Select,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -34,22 +36,25 @@ function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [form, setForm] = useState({ id: null, email: '', full_name: '', role: 'customer', status: 'active', password: '' });
   const [kycForm, setKycForm] = useState({ document_type: 'business_license', document_image_url: '' });
+  const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
 
-  const loadUsers = async () => {
+  const showSnack = (message, severity = 'success') => setSnack({ open: true, message, severity });
+
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get('/user');
       setUsers(response.data || []);
     } catch (e) {
-      console.error('Failed to load users:', e);
+      showSnack('Failed to load users', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -90,33 +95,50 @@ function Users() {
       status: form.status,
     };
     if (form.password) payload.password = form.password;
-    if (form.id) {
-      await api.put(`/user/${form.id}`, payload);
-    } else {
-      await api.post('/user', payload);
+    try {
+      if (form.id) {
+        await api.put(`/user/${form.id}`, payload);
+        showSnack('User updated');
+      } else {
+        await api.post('/user', payload);
+        showSnack('User created');
+      }
+      setOpen(false);
+      loadUsers();
+    } catch (e) {
+      showSnack(form.id ? 'Failed to update user' : 'Failed to create user', 'error');
     }
-    setOpen(false);
-    loadUsers();
   };
 
   const handleSaveKyc = async () => {
     if (selectedUser) {
-      const entityType = selectedUser.role === 'restaurant_owner' ? 'restaurant' : 'delivery_agent';
-      await api.post('/kyc', {
-        user_id: selectedUser.id,
-        entity_type: entityType,
-        document_type: kycForm.document_type,
-        document_image_url: kycForm.document_image_url,
-        status: 'approved',
-      });
-      setKycDialog(false);
+      try {
+        const entityType = selectedUser.role === 'restaurant_owner' ? 'restaurant' : 'delivery_agent';
+        await api.post('/kyc', {
+          user_id: selectedUser.id,
+          entity_type: entityType,
+          document_type: kycForm.document_type,
+          document_image_url: kycForm.document_image_url,
+          status: 'approved',
+        });
+        showSnack('KYC approved');
+        setKycDialog(false);
+        loadUsers();
+      } catch (e) {
+        showSnack('Failed to approve KYC', 'error');
+      }
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Delete this user?')) {
-      await api.delete(`/user/${id}`);
-      loadUsers();
+      try {
+        await api.delete(`/user/${id}`);
+        showSnack('User deleted');
+        loadUsers();
+      } catch (e) {
+        showSnack('Failed to delete user', 'error');
+      }
     }
   };
 
@@ -255,6 +277,11 @@ function Users() {
           <Button variant="contained" onClick={handleSaveKyc}>Save & Approve</Button>
         </DialogActions>
       </Dialog>
+      <Snackbar open={snack.open} autoHideDuration={6000} onClose={() => setSnack({ ...snack, open: false })}>
+        <Alert severity={snack.severity} onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

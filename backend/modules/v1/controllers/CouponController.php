@@ -44,14 +44,20 @@ class CouponController extends ActiveController
         $currentUser = $this->getCurrentUser();
         $query = Coupon::find();
 
+        $restaurantId = Yii::$app->request->get('restaurant_id');
+        $agentId = Yii::$app->request->get('agent_id');
+
+        if ($restaurantId) {
+            $query->andWhere(['restaurant_id' => $restaurantId]);
+        }
+
+        if ($agentId) {
+            $query->andWhere(['delivery_agent_id' => $agentId]);
+        }
+
         if ($currentUser && $currentUser->role === 'restaurant_owner') {
             $ownedRestaurantIds = Restaurant::find()->select('id')->where(['owner_id' => $currentUser->id])->column();
             $query->andWhere(['restaurant_id' => $ownedRestaurantIds]);
-        }
-
-        $restaurantId = Yii::$app->request->get('restaurant_id');
-        if ($restaurantId) {
-            $query->andWhere(['restaurant_id' => $restaurantId]);
         }
 
         return $query->orderBy(['created_at' => SORT_DESC])->all();
@@ -79,22 +85,31 @@ class CouponController extends ActiveController
     public function actionCreate()
     {
         $currentUser = $this->getCurrentUser();
-        if (!$currentUser || $currentUser->role !== 'restaurant_owner') {
-            throw new \yii\web\ForbiddenHttpException('Only restaurant owners can create coupons');
-        }
-
         $body = $this->getBodyParams();
-        $restaurantId = $body['restaurant_id'] ?? null;
-
-        $ownedRestaurantIds = Restaurant::find()->select('id')->where(['owner_id' => $currentUser->id])->column();
-        if (!in_array($restaurantId, $ownedRestaurantIds)) {
-            throw new \yii\web\ForbiddenHttpException('Not your restaurant');
-        }
 
         $coupon = new Coupon();
         $coupon->load($body, '');
 
+        // Admin can create coupons for any target without restrictions
+        if ($currentUser && $currentUser->role === 'admin') {
+            // Allow admin to create global coupons or assign to any restaurant/agent
+        } elseif ($currentUser && $currentUser->role === 'restaurant_owner') {
+            $restaurantId = $body['restaurant_id'] ?? null;
+            $ownedRestaurantIds = Restaurant::find()->select('id')->where(['owner_id' => $currentUser->id])->column();
+            if (!in_array($restaurantId, $ownedRestaurantIds)) {
+                throw new \yii\web\ForbiddenHttpException('Not your restaurant');
+            }
+        }
+
         if ($coupon->save()) {
+            // Create notification
+            Yii::$app->db->createCommand()->insert('notifications', [
+                'user_id' => null,
+                'category' => $coupon->restaurant_id ? 'restaurant_owner' : ($coupon->delivery_agent_id ? 'delivery_agent' : 'all'),
+                'title' => 'New Coupon Created',
+                'message' => 'Coupon ' . $coupon->code . ' has been created. ' . ($coupon->discount_percent ? $coupon->discount_percent . '% off' : '$' . $coupon->discount_amount . ' off'),
+                'created_at' => date('Y-m-d H:i:s'),
+            ])->execute();
             return $coupon;
         }
 
