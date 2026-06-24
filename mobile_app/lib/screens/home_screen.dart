@@ -49,35 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = Provider.of<AuthProvider>(context);
     final cart = context.watch<CartProvider>();
     return Scaffold(
-      appBar: AppBar(
+appBar: AppBar(
         title: const Text('BiteDash'),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
-actions: auth.isAuthenticated
-            ? [
-                IconButton(icon: const Icon(Icons.local_offer), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CouponsScreen()))),
-                IconButton(icon: const Icon(Icons.people), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RidersScreen()))),
-                FutureBuilder<List<NotificationItem>>(
-                  future: notificationsFuture,
-                  builder: (context, snapshot) {
-                    final unreadCount = snapshot.hasData ? snapshot.data!.where((note) => !note.isRead).length : 0;
-                    return Stack(
-                      children: [
-                        IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
-                        if (unreadCount > 0) Positioned(right: 8, top: 8, child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
-                          child: Text('$unreadCount', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                        )),
-                      ],
-                    );
-                  },
-                ),
-              ]
-            : [
-                TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/login'), icon: const Icon(Icons.login, color: Colors.white), label: const Text('Login', style: TextStyle(color: Colors.white))),
-                TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/register'), icon: const Icon(Icons.person_add, color: Colors.white), label: const Text('Sign Up', style: TextStyle(color: Colors.white))),
-              ],
+        actions: [
+          IconButton(icon: const Icon(Icons.local_offer), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CouponsScreen()))),
+          IconButton(icon: const Icon(Icons.people), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RidersScreen()))),
+          IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+          if (!auth.isAuthenticated) ...[
+            TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/login'), icon: const Icon(Icons.login, color: Colors.white), label: const Text('Login', style: TextStyle(color: Colors.white))),
+            TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/register'), icon: const Icon(Icons.person_add, color: Colors.white), label: const Text('Sign Up', style: TextStyle(color: Colors.white))),
+          ],
+        ],
       ),
       body: Stack(
         children: [

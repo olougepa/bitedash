@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/cart_provider.dart';
+import '../models/notification.dart';
 
 class RestaurantScreen extends StatefulWidget {
   final int restaurantId;
@@ -17,6 +18,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
   late Future<dynamic> restaurantFuture;
   late Future<List<dynamic>> menuFuture;
   String _searchQuery = '';
+  int? _orderId;
 
   @override
   void initState() {
@@ -27,11 +29,20 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.restaurantName),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat),
+            onPressed: cart.items.isEmpty ? null : () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat available after checkout')));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

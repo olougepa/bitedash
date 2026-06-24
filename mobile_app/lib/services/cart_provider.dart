@@ -31,6 +31,13 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateQuantity(int id, int quantity) {
+    if (_items.containsKey(id)) {
+      _items[id]!.quantity = quantity;
+      notifyListeners();
+    }
+  }
+
   void clear() {
     _items.clear();
     notifyListeners();

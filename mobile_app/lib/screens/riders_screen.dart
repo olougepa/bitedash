@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import 'chat_screen.dart';
 
 class RidersScreen extends StatefulWidget {
-  const RidersScreen({super.key});
+  final int? orderId;
+  const RidersScreen({super.key, this.orderId});
 
   @override
   State<RidersScreen> createState() => _RidersScreenState();
@@ -22,6 +24,14 @@ class _RidersScreenState extends State<RidersScreen> {
     setState(() {
       ridersFuture = Provider.of<ApiService>(context, listen: false).fetchNearbyRiders(37.7749, -122.4194);
     });
+  }
+
+  void _openChat(int? orderId, int riderId) {
+    if (orderId != null && orderId > 0) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(orderId: orderId)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat available after placing an order')));
+    }
   }
 
   @override
@@ -80,7 +90,7 @@ class _RidersScreenState extends State<RidersScreen> {
                       Text('Price: \$${pricePerKm}/km'),
                     ],
                   ),
-                  trailing: IconButton(icon: const Icon(Icons.chat), onPressed: () {}),
+                  trailing: IconButton(icon: const Icon(Icons.chat), onPressed: () => _openChat(widget.orderId, r['id'] as int)),
                 ),
               );
             },

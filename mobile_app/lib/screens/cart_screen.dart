@@ -16,10 +16,33 @@ class CartScreen extends StatelessWidget {
             itemCount: cart.items.length,
             itemBuilder: (context, index) {
               final it = cart.items[index];
-              return ListTile(
-                title: Text(it.name),
-                subtitle: Text('Qty: ${it.quantity}'),
-                trailing: Text('\$${(it.price * it.quantity).toStringAsFixed(2)}'),
+              return Dismissible(
+                key: Key('cart-item-${it.id}'),
+                direction: DismissDirection.endToStart,
+                onDismissed: (_) => cart.removeItem(it.id),
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 16),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                child: ListTile(
+                  title: Text(it.name),
+                  subtitle: Text('Qty: ${it.quantity}'),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('\$${(it.price * it.quantity).toStringAsFixed(2)}'),
+                    IconButton(icon: const Icon(Icons.remove, color: Colors.orange), onPressed: () {
+                      if (it.quantity > 1) {
+                        cart.updateQuantity(it.id, it.quantity - 1);
+                      } else {
+                        cart.removeItem(it.id);
+                      }
+                    }),
+                    IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () {
+                      cart.updateQuantity(it.id, it.quantity + 1);
+                    }),
+                  ]),
+                ),
               );
             },
           ),

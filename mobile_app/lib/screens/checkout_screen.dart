@@ -84,7 +84,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(children: [
           Expanded(
             child: ListView(children: [
-              ...cart.items.map((e) => ListTile(title: Text(e.name), trailing: Text('x${e.quantity}'))),
+              ...cart.items.map((e) => Dismissible(
+                key: Key('cart-item-${e.id}'),
+                direction: DismissDirection.endToStart,
+                onDismissed: (_) => cart.removeItem(e.id),
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 16),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                child: ListTile(
+                  title: Text(e.name),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('x${e.quantity}'),
+                    IconButton(icon: const Icon(Icons.remove, color: Colors.orange), onPressed: () {
+                      if (e.quantity > 1) {
+                        cart.updateQuantity(e.id, e.quantity - 1);
+                      } else {
+                        cart.removeItem(e.id);
+                      }
+                    }),
+                    IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () {
+                      cart.updateQuantity(e.id, e.quantity + 1);
+                    }),
+                  ]),
+                ),
+              )),
               const SizedBox(height: 16),
               const Text('Rider Selection', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
