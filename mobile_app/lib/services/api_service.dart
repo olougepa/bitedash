@@ -436,7 +436,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
   }
 
   Future<List<dynamic>> fetchAds() async {
-    final response = await http.get(Uri.parse('$baseUrl/ad'));
+    final response = await http.get(Uri.parse('$baseUrl/ad?status=approved'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
@@ -530,6 +530,21 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
       return null;
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>> scanMenu(String base64Image) async {
+    final token = await _auth.getAccessToken();
+    final headers = {"Content-Type": "application/json"};
+    if (token != null) headers["Authorization"] = "Bearer $token";
+    final response = await http.post(
+      Uri.parse("$baseUrl/menu-scan"),
+      headers: headers,
+      body: jsonEncode({"image": base64Image}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception("Menu scan failed");
   }
 
   Future<void> updateDeliveryAgent(int id, Map<String, dynamic> data) async {

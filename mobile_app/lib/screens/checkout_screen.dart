@@ -14,9 +14,6 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loading = false;
   String _orderType = 'delivery';
-  String _paymentMethod = 'cash';
-  String _cardNumber = '';
-  String _cardExpiry = '';
   String _guestPhone = '';
   String _deliveryLocation = '';
   bool _useCurrentLocation = false;
@@ -56,7 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return _defaultPricePerKm * distance;
   }
 
-Widget _buildTotalRow(double subtotal) {
+ Widget _buildTotalRow(double subtotal) {
     final deliveryFee = _orderType == 'delivery' ? _calculateDeliveryFee() : 0.0;
     final total = subtotal + deliveryFee;
     return Column(
@@ -64,18 +61,18 @@ Widget _buildTotalRow(double subtotal) {
       children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text('Subtotal'),
-          Text('\$${subtotal.toStringAsFixed(2)}'),
+          Text('${subtotal.toStringAsFixed(0)} XAF'),
         ]),
         if (_orderType == 'delivery')
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(_deliveryFeeFixed ? 'Delivery Fee (Fixed)' : 'Delivery Fee (estimated)'),
-            Text('\$${deliveryFee.toStringAsFixed(2)}'),
+            Text('${deliveryFee.toStringAsFixed(0)} XAF'),
           ]),
         const Text('Est. ~5km distance', style: TextStyle(color: Colors.grey, fontSize: 11)),
         const Divider(),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(_orderType == 'pickup' ? 'Pickup' : _orderType == 'reservation' ? 'Reservation' : 'Total', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('${total.toStringAsFixed(0)} XAF', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ]),
       ],
     );
@@ -98,16 +95,8 @@ Widget _buildTotalRow(double subtotal) {
       'sub_total': cart.total,
       'delivery_fee': deliveryFee,
       'total': total,
-      'payment_method': _paymentMethod,
-      'payment_stub': {
-        'method': _paymentMethod,
-        'card_number': _paymentMethod == 'card' && _cardNumber.length >= 4
-            ? '**** **** **** ${_cardNumber.substring(_cardNumber.length - 4)}'
-            : _paymentMethod == 'wallet'
-                ? 'Mobile Money'
-                : 'cash',
-        'expiry': _paymentMethod == 'card' ? _cardExpiry : null,
-      },
+      'payment_method': 'cash',
+      'payment_stub': {'method': 'cash'},
       'delivery_location': _orderType == 'delivery' ? (_useCurrentLocation ? null : _deliveryLocation) : null,
       if (!auth.isAuthenticated) 'guest_phone': _guestPhone,
       if (_orderType == 'delivery' && _selectedRiderId != null) 'delivery_agent_id': _selectedRiderId,
@@ -140,166 +129,141 @@ Widget _buildTotalRow(double subtotal) {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-           Expanded(
-             child: ListView(children: [
-               const Text('Order Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-               const SizedBox(height: 8),
-               Wrap(
-                 spacing: 8,
-                 children: [
-                   ChoiceChip(
-                     label: const Text('Delivery'),
-                     selected: _orderType == 'delivery',
-                     onSelected: (_) => setState(() => _orderType = 'delivery'),
-                   ),
-                   ChoiceChip(
-                     label: const Text('Pickup'),
-                     selected: _orderType == 'pickup',
-                     onSelected: (_) => setState(() => _orderType = 'pickup'),
-                   ),
-                   ChoiceChip(
-                     label: const Text('Reservation'),
-                     selected: _orderType == 'reservation',
-                     onSelected: (_) => setState(() => _orderType = 'reservation'),
-                   ),
-                 ],
-               ),
-               const SizedBox(height: 16),
-               const Text('Your Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 8),
-              ...cart.items.map((e) => Dismissible(
-                key: Key('cart-item-${e.id}'),
-                direction: DismissDirection.endToStart,
-                onDismissed: (_) => cart.removeItem(e.id),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 16),
-                  child: const Icon(Icons.delete, color: Colors.white),
+            Expanded(
+              child: ListView(children: [
+                const Text('Order Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Delivery'),
+                      selected: _orderType == 'delivery',
+                      onSelected: (_) => setState(() => _orderType = 'delivery'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Pickup'),
+                      selected: _orderType == 'pickup',
+                      onSelected: (_) => setState(() => _orderType = 'pickup'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Reservation'),
+                      selected: _orderType == 'reservation',
+                      onSelected: (_) => setState(() => _orderType = 'reservation'),
+                    ),
+                  ],
                 ),
-                child: ListTile(
-                  title: Text(e.name),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('\$${e.price.toStringAsFixed(2)}'),
-                    const SizedBox(width: 8),
-                    Text('x${e.quantity}'),
-                    IconButton(icon: const Icon(Icons.remove, color: Colors.orange), onPressed: () {
-                      if (e.quantity > 1) {
-                        cart.updateQuantity(e.id, e.quantity - 1);
-                      } else {
-                        cart.removeItem(e.id);
-                      }
-                    }),
-                    IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () {
-                      cart.updateQuantity(e.id, e.quantity + 1);
-                    }),
-                  ]),
-                ),
-              )),
-const SizedBox(height: 16),
-               if (_orderType == 'delivery') ...[
-                 const Text('Delivery Location', style: TextStyle(fontWeight: FontWeight.bold)),
-                 const SizedBox(height: 8),
-                 ListTile(
-                   leading: const Icon(Icons.my_location),
-                   title: const Text('Use current location'),
-                   trailing: Switch(value: _useCurrentLocation, onChanged: (v) => setState(() => _useCurrentLocation = v)),
-                 ),
-                 if (!_useCurrentLocation)
-                   TextField(
-                     decoration: const InputDecoration(
-                       labelText: 'Enter delivery address',
-                       prefixIcon: Icon(Icons.location_on),
-                       border: OutlineInputBorder(),
-                     ),
-                     onChanged: (v) => setState(() => _deliveryLocation = v),
-                   ),
-                 const SizedBox(height: 16),
-                 const Text('Rider Selection', style: TextStyle(fontWeight: FontWeight.bold)),
-                 const SizedBox(height: 8),
-                 _riders.isEmpty
-                     ? const Text('No riders available')
-                     : Wrap(
-                         spacing: 8,
-                         children: [
-                           ChoiceChip(
-                             label: const Text('Any rider'),
-                             selected: _selectedRiderId == null,
-                             onSelected: (_) => setState(() => _selectedRiderId = null),
-                           ),
-                           ..._riders.map<Widget>((r) {
-                             final riderId = int.tryParse('${r['id']}') ?? 0;
-                             final rating = double.tryParse('${r['rating'] ?? 0}') ?? 0.0;
-                             final isFixed = r['is_fixed_price'] == true || r['is_fixed_price'] == '1';
-                             final priceLabel = isFixed
-                                 ? '\$${r['fixed_price'] ?? 0}'
-                                 : '\$${double.tryParse('${r['price_per_km'] ?? 1.5}') ?? _defaultPricePerKm}/km';
-                             return ChoiceChip(
-                               label: Text('Rider $riderId (${rating.toStringAsFixed(1)}★) $priceLabel'),
-                               selected: _selectedRiderId == riderId,
-                               onSelected: (selected) {
-                                 setState(() => _selectedRiderId = selected ? riderId : null);
-                               },
-                             );
-                           }).toList(),
-                         ],
-                       ),
-               ],
-               if (!auth.isAuthenticated) ...[
                 const SizedBox(height: 16),
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Phone for order updates',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
+                const Text('Your Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+               const SizedBox(height: 8),
+               ...cart.items.map((e) => Dismissible(
+                 key: Key('cart-item-${e.id}'),
+                 direction: DismissDirection.endToStart,
+                 onDismissed: (_) => cart.removeItem(e.id),
+                 background: Container(
+                   color: Colors.red,
+                   alignment: Alignment.centerRight,
+                   padding: const EdgeInsets.only(right: 16),
+                   child: const Icon(Icons.delete, color: Colors.white),
+                 ),
+                 child: ListTile(
+                   title: Text(e.name),
+                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                     Text('${e.price.toStringAsFixed(0)} XAF'),
+                     const SizedBox(width: 8),
+                     Text('x${e.quantity}'),
+                     IconButton(icon: const Icon(Icons.remove, color: Colors.orange), onPressed: () {
+                       if (e.quantity > 1) {
+                         cart.updateQuantity(e.id, e.quantity - 1);
+                       } else {
+                         cart.removeItem(e.id);
+                       }
+                     }),
+                     IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () {
+                       cart.updateQuantity(e.id, e.quantity + 1);
+                     }),
+                   ]),
+                 ),
+               )),
+const SizedBox(height: 16),
+                if (_orderType == 'delivery') ...[
+                  const Text('Delivery Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.my_location),
+                    title: const Text('Use current location'),
+                    trailing: Switch(value: _useCurrentLocation, onChanged: (v) => setState(() => _useCurrentLocation = v)),
                   ),
-                  keyboardType: TextInputType.phone,
-                  onChanged: (v) => setState(() => _guestPhone = v),
-                ),
-              ],
-              const SizedBox(height: 16),
-              const Text('Payment', style: TextStyle(fontWeight: FontWeight.bold)),
-              DropdownButtonFormField<String>(
-                value: _paymentMethod,
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                  DropdownMenuItem(value: 'card', child: Text('Card')),
-                  DropdownMenuItem(value: 'wallet', child: Text('Mobile Money')),
+                  if (!_useCurrentLocation)
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Enter delivery address',
+                        prefixIcon: Icon(Icons.location_on),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) => setState(() => _deliveryLocation = v),
+                    ),
+                  const SizedBox(height: 16),
+                  const Text('Rider Selection', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _riders.isEmpty
+                      ? const Text('No riders available')
+                      : Wrap(
+                          spacing: 8,
+                          children: [
+                            ChoiceChip(
+                              label: const Text('Any rider'),
+                              selected: _selectedRiderId == null,
+                              onSelected: (_) => setState(() => _selectedRiderId = null),
+                            ),
+                            ..._riders.map<Widget>((r) {
+                              final riderId = int.tryParse('${r['id']}') ?? 0;
+                              final rating = double.tryParse('${r['rating'] ?? 0}') ?? 0.0;
+                              final isFixed = r['is_fixed_price'] == true || r['is_fixed_price'] == '1';
+                              final priceLabel = isFixed
+                                  ? '${r['fixed_price'] ?? 0} XAF'
+                                  : '${double.tryParse('${r['price_per_km'] ?? 1.5}') ?? _defaultPricePerKm} XAF/km';
+                              return ChoiceChip(
+                                label: Text('Rider $riderId (${rating.toStringAsFixed(1)}★) $priceLabel'),
+                                selected: _selectedRiderId == riderId,
+                                onSelected: (selected) {
+                                  setState(() => _selectedRiderId = selected ? riderId : null);
+                                },
+                              );
+                            }).toList(),
+                          ],
+                        ),
                 ],
-                onChanged: (value) => setState(() => _paymentMethod = value ?? 'cash'),
-                decoration: const InputDecoration(labelText: 'Payment method'),
-              ),
-              if (_paymentMethod == 'card') ...[
-                const SizedBox(height: 12),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Card number'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => setState(() => _cardNumber = v),
+                if (!auth.isAuthenticated) ...[
+                 const SizedBox(height: 16),
+                 TextField(
+                   decoration: const InputDecoration(
+                     labelText: 'Phone for order updates',
+                     prefixIcon: Icon(Icons.phone),
+                     border: OutlineInputBorder(),
+                   ),
+                   keyboardType: TextInputType.phone,
+                   onChanged: (v) => setState(() => _guestPhone = v),
+                 ),
+               ],
+const SizedBox(height: 16),
+                const ListTile(
+                  leading: Icon(Icons.money, color: Colors.deepOrange),
+                  title: Text('Cash on delivery'),
+                  subtitle: Text('Pay when your order arrives (XAF)', style: TextStyle(color: Colors.grey)),
                 ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Expiry (MM/YY)'),
-                  keyboardType: TextInputType.datetime,
-                  onChanged: (v) => setState(() => _cardExpiry = v),
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'CVV'),
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  onChanged: (_) {},
-                ),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 12),
-          _buildTotalRow(cart.total),
-          const SizedBox(height: 12),
-          _loading
-              ? const CircularProgressIndicator()
-              : ElevatedButton(
-                  onPressed: _placeOrder,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-                  child: const Text('Place Order'),
-                ),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            _buildTotalRow(cart.total),
+            const SizedBox(height: 12),
+            _loading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _placeOrder,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+                    child: const Text('Place Order'),
+                  ),
         ]),
       ),
     );

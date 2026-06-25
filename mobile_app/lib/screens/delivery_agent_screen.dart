@@ -192,7 +192,7 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
           IconButton(
             icon: const Icon(Icons.local_offer),
             tooltip: 'Coupons',
-            onPressed: () => Navigator.pushNamed(context, '/coupons'),
+            onPressed: () => Navigator.pushNamed(context, '/coupon-manager'),
           ),
         ],
       ),

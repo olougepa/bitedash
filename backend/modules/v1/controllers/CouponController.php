@@ -9,6 +9,7 @@ use Firebase\JWT\Key;
 use common\models\Coupon;
 use common\models\Restaurant;
 use common\models\User;
+use common\models\DeliveryAgent;
 
 class CouponController extends ActiveController
 {
@@ -26,6 +27,18 @@ class CouponController extends ActiveController
             ],
         ];
         return $behaviors;
+    }
+
+    protected function verbs()
+    {
+        return [
+            'index' => ['GET', 'POST'],
+            'view' => ['GET'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+            'check' => ['GET'],
+        ];
     }
 
     protected function getBodyParams()
@@ -60,6 +73,13 @@ class CouponController extends ActiveController
             $query->andWhere(['restaurant_id' => $ownedRestaurantIds]);
         }
 
+        if ($currentUser && $currentUser->role === 'delivery_agent') {
+            $agent = DeliveryAgent::findOne(['user_id' => $currentUser->id]);
+            if ($agent) {
+                $query->andWhere(['delivery_agent_id' => $agent->id]);
+            }
+        }
+
         return $query->orderBy(['created_at' => SORT_DESC])->all();
     }
 
@@ -88,29 +108,59 @@ class CouponController extends ActiveController
         $body = $this->getBodyParams();
 
         $coupon = new Coupon();
-        $coupon->load($body, '');
 
-        // Admin can create coupons for any target without restrictions
-        if ($currentUser && $currentUser->role === 'admin') {
-            // Allow admin to create global coupons or assign to any restaurant/agent
-        } elseif ($currentUser && $currentUser->role === 'restaurant_owner') {
-            $restaurantId = $body['restaurant_id'] ?? null;
-            $ownedRestaurantIds = Restaurant::find()->select('id')->where(['owner_id' => $currentUser->id])->column();
-            if (!in_array($restaurantId, $ownedRestaurantIds)) {
-                throw new \yii\web\ForbiddenHttpException('Not your restaurant');
+        if ($currentUser && $currentUser->role === 'restaurant_owner') {
+            $restaurant = Restaurant::findOne(['owner_id' => $currentUser->id]);
+            if ($restaurant) {
+                $coupon->restaurant_id = $restaurant->id;
+            }
+        } elseif ($currentUser && $currentUser->role === 'delivery_agent') {
+            $agent = DeliveryAgent::findOne(['user_id' => $currentUser->id]);
+            if ($agent) {
+                $coupon->delivery_agent_id = $agent->id;
             }
         }
 
+        $coupon->code = $body['code'] ?? '';
+        $coupon->description = $body['description'] ?? '';
+        $coupon->discount_percent = $body['discount_percent'] ?? null;
+        $coupon->discount_amount = $body['discount_amount'] ?? null;
+        $coupon->valid_from = $body['valid_from'] ?? date('Y-m-d H:i:s');
+        $coupon->valid_until = $body['valid_until'] ?? date('Y-m-d H:i:s', strtotime('+30 days'));
+        $coupon->is_active = $body['is_active'] ?? 1;
+        $coupon->min_order_amount = $body['min_order_amount'] ?? 0;
+        $coupon->max_uses = $body['max_uses'] ?? 0;
+
         if ($coupon->save()) {
-            // Create notification
-            Yii::$app->db->createCommand()->insert('notifications', [
-                'user_id' => null,
-                'category' => $coupon->restaurant_id ? 'restaurant_owner' : ($coupon->delivery_agent_id ? 'delivery_agent' : 'all'),
-                'title' => 'New Coupon Created',
-                'message' => 'Coupon ' . $coupon->code . ' has been created. ' . ($coupon->discount_percent ? $coupon->discount_percent . '% off' : '$' . $coupon->discount_amount . ' off'),
-                'created_at' => date('Y-m-d H:i:s'),
-            ])->execute();
-            return $coupon;
+            return $coupon->toArray();
+        }
+
+        Yii::$app->response->statusCode = 422;
+        return $coupon->getErrors();
+    }
+
+    public function actionUpdate($id)
+    {
+        $coupon = Coupon::findOne($id);
+        if (!$coupon) {
+            Yii::$app->response->statusCode = 404;
+            return ['error' => 'not_found'];
+        }
+
+        $body = $this->getBodyParams();
+        
+        $coupon->code = $body['code'] ?? $coupon->code;
+        $coupon->description = $body['description'] ?? $coupon->description;
+        $coupon->discount_percent = $body['discount_percent'] ?? $coupon->discount_percent;
+        $coupon->discount_amount = $body['discount_amount'] ?? $coupon->discount_amount;
+        $coupon->valid_from = $body['valid_from'] ?? $coupon->valid_from;
+        $coupon->valid_until = $body['valid_until'] ?? $coupon->valid_until;
+        $coupon->is_active = $body['is_active'] ?? $coupon->is_active;
+        $coupon->min_order_amount = $body['min_order_amount'] ?? $coupon->min_order_amount;
+        $coupon->max_uses = $body['max_uses'] ?? $coupon->max_uses;
+
+        if ($coupon->save()) {
+            return $coupon->toArray();
         }
 
         Yii::$app->response->statusCode = 422;

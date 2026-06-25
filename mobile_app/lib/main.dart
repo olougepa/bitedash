@@ -19,6 +19,8 @@ import 'screens/receipt_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/kyc_screen.dart';
 import 'screens/coupons_screen.dart';
+import 'screens/coupon_manager_screen.dart';
+import 'screens/menu_scan_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +68,8 @@ class BitedashApp extends StatelessWidget {
             '/chat': (ctx) => const ChatScreen(orderId: 0),
             '/kyc': (ctx) => const KycScreen(role: 'restaurant_owner'),
             '/coupons': (ctx) => const CouponsScreen(),
+            '/coupon-manager': (ctx) => const CouponManagerScreen(),
+            '/menu-scan': (ctx) => const MenuScanScreen(),
           },
         );
       }),

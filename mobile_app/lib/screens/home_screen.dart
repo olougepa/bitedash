@@ -421,13 +421,28 @@ class _AdsBannerState extends State<AdsBanner> {
     _adsFuture = Provider.of<ApiService>(context, listen: false).fetchAds();
   }
 
+  bool _isNotExpired(Map<String, dynamic> ad) {
+    final endDateStr = ad['end_date'] as String?;
+    if (endDateStr == null) return true;
+    final endDate = DateTime.tryParse(endDateStr);
+    if (endDate == null) return true;
+    return endDate.isAfter(DateTime.now());
+  }
+
+  bool _isValidForBanner(Map<String, dynamic> ad) {
+    final status = ad['status'] as String? ?? 'pending';
+    if (status != 'approved') return false;
+    return _isNotExpired(ad);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
       future: _adsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-        final ads = snapshot.data!;
+        final allAds = snapshot.data!;
+        final ads = allAds.where((ad) => _isValidForBanner(ad as Map<String, dynamic>)).toList();
         if (ads.isEmpty) return const SizedBox.shrink();
         return Container(
           height: 60,
@@ -448,6 +463,8 @@ class _AdsBannerState extends State<AdsBanner> {
                         restaurantName: ad['title'] ?? 'Restaurant',
                       ),
                     ));
+                  } else if (targetType == 'rider' && targetId != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delivery Agent ID: $targetId')));
                   }
                 },
                 child: Container(

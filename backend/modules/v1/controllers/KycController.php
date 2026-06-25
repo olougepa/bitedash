@@ -93,16 +93,17 @@ class KycController extends ActiveController
                         'status' => 'draft',
                         'created_at' => date('Y-m-d H:i:s'),
                     ])->execute();
-                } elseif ($record->entity_type === 'delivery_agent') {
-                    $user = User::findOne($record->user_id);
-                    $agencyName = $user ? ($user->full_name . ' Agency') : 'My Agency';
-                    Yii::$app->db->createCommand()->insert('delivery_agents', [
-                        'user_id' => $record->user_id,
-                        'agency_name' => $agencyName,
-                        'status' => 'active',
-                        'created_at' => date('Y-m-d H:i:s'),
-                    ])->execute();
-                }
+} elseif ($record->entity_type === 'delivery_agent') {
+                     $user = User::findOne($record->user_id);
+                     $agencyName = $user ? ($user->full_name . ' Agency') : 'My Agency';
+                     Yii::$app->db->createCommand()->insert('delivery_agents', [
+                         'user_id' => $record->user_id,
+                         'agency_name' => $agencyName,
+                         'vehicle_type' => 'bike',
+                         'status' => 'active',
+                         'created_at' => date('Y-m-d H:i:s'),
+                     ])->execute();
+                 }
             }
         }
         if (isset($params['admin_remark'])) {

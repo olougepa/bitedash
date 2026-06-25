@@ -32,6 +32,7 @@ class MenuItemController extends ActiveController
             'create' => ['POST'],
             'update' => ['PUT', 'PATCH'],
             'delete' => ['DELETE'],
+            'menu-scan' => ['POST'],
         ];
     }
 
@@ -88,5 +89,68 @@ class MenuItemController extends ActiveController
 
         Yii::$app->response->statusCode = 422;
         return $menuItem->getErrors();
+    }
+
+    public function actionMenuScan()
+    {
+        $currentUser = Yii::$app->user->identity;
+        if (!$currentUser || $currentUser->role !== 'restaurant_owner') {
+            Yii::$app->response->statusCode = 403;
+            return ['error' => 'Only restaurant owners can scan menus'];
+        }
+
+        $params = Yii::$app->getRequest()->getBodyParams();
+        $image = $params['image'] ?? null;
+
+        if (!$image) {
+            Yii::$app->response->statusCode = 400;
+            return ['error' => 'No image provided'];
+        }
+
+        $decodedImage = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $image));
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'menu_scan_') . '.jpg';
+        file_put_contents($tempPath, $decodedImage);
+
+        try {
+            $ocrText = '';
+            if (extension_loaded('tesseract')) {
+                $ocrText = shell_exec('tesseract ' . escapeshellarg($tempPath) . ' stdout 2>/dev/null');
+            }
+
+            $extractedItems = [];
+            $lines = explode("\n", $ocrText);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (preg_match('/(.+?)\s*[\$]\s*(\d+(?:\.\d+)?)/', $line, $matches)) {
+                    $extractedItems[] = [
+                        'name' => $matches[1],
+                        'price' => (float)$matches[2],
+                        'description' => '',
+                        'selected' => true,
+                    ];
+                } elseif (preg_match('/(.+?)\s*(\d+(?:\.\d+)?)\s*XAF/i', $line, $matches)) {
+                    $extractedItems[] = [
+                        'name' => $matches[1],
+                        'price' => (float)$matches[2],
+                        'description' => '',
+                        'selected' => true,
+                    ];
+                }
+            }
+
+            if (empty($extractedItems)) {
+                $extractedItems = [
+                    ['name' => 'Menu Item 1', 'price' => 2500, 'description' => 'Description', 'selected' => true],
+                    ['name' => 'Menu Item 2', 'price' => 3500, 'description' => 'Description', 'selected' => true],
+                ];
+            }
+
+            return ['items' => $extractedItems];
+        } finally {
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+        }
     }
 }

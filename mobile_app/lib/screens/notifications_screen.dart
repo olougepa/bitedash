@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
+import '../services/l10n.dart';
 import '../models/notification.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -15,33 +17,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<NotificationItem> notifications = [];
   bool _loading = true;
   String? _error;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _refreshNotifications();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) _refreshNotifications();
+    });
   }
 
   Future<void> _refreshNotifications() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final api = Provider.of<ApiService>(context, listen: false);
     try {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final api = Provider.of<ApiService>(context, listen: false);
       final list = await api.fetchNotifications(category: auth.user?.role);
-      setState(() {
-        notifications = list.map<NotificationItem>((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
-      });
+      if (mounted) {
+        setState(() {
+          notifications = list.map<NotificationItem>((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
     }
   }
 
@@ -54,20 +66,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         notification.isRead = true;
       });
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to mark notification as read')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(L10n.t('unable_to_mark_read'))));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: Text(L10n.t('notifications'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text('Error: $_error'))
+              ? Center(child: Text('${L10n.t('error')}: $_error'))
               : notifications.isEmpty
-                  ? const Center(child: Text('No notifications yet.'))
+                  ? Center(child: Text(L10n.t('no_notifications_yet')))
                   : RefreshIndicator(
                       onRefresh: _refreshNotifications,
                       child: ListView.builder(
@@ -78,10 +92,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             title: Text(notification.title),
                             subtitle: Text(notification.message),
                             trailing: notification.isRead
-                                ? Chip(label: const Text('Read'))
+                                ? Chip(label: Text(L10n.t('read')))
                                 : TextButton(
                                     onPressed: () => _markRead(notification),
-                                    child: const Text('Mark read'),
+                                    child: Text(L10n.t('mark_read')),
                                   ),
                           );
                         },

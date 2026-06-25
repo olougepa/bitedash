@@ -179,7 +179,7 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(c['code'] ?? 'COUPON', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                  Text(c['discount_percent'] != null ? '${c['discount_percent']}% off' : '\$${c['discount_amount']} off', style: TextStyle(fontSize: 10, color: Colors.orange)),
+                                  Text(c['discount_percent'] != null ? '${c['discount_percent']}% off' : '${c['discount_amount']} XAF off', style: TextStyle(fontSize: 10, color: Colors.orange)),
                                 ],
                               ),
                             );
@@ -207,51 +207,67 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                 if (_searchQuery.isNotEmpty) {
                   items = items.where((item) => (item['name'] as String? ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
                 }
-                return ListView.builder(
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index] as Map<String, dynamic>;
-                    final id = int.tryParse('${item['id']}') ?? 0;
-                    final name = item['name'] as String? ?? 'Dish';
-                    final price = double.tryParse('${item['price']}') ?? 0.0;
-                    final qty = item['quantity'];
-                    final hasExplicitQuantity = qty != null;
-                    final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
-                    final isSoldOut = hasExplicitQuantity && (qty == 0);
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: ListTile(
-                        leading: _buildMealPhoto(item['photo_url'] as String?, name),
-                        title: Text(name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('\$${price.toStringAsFixed(2)}'),
-                            if (!isAvailable || isSoldOut)
-                              Text('Sold out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                          ],
+                return Stack(
+                  children: [
+                    ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index] as Map<String, dynamic>;
+                        final id = int.tryParse('${item['id']}') ?? 0;
+                        final name = item['name'] as String? ?? 'Dish';
+                        final price = double.tryParse('${item['price']}') ?? 0.0;
+                        final qty = item['quantity'];
+                        final hasExplicitQuantity = qty != null;
+                        final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
+                        final isSoldOut = hasExplicitQuantity && (qty == 0);
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            leading: _buildMealPhoto(item['photo_url'] as String?, name),
+                            title: Text(name),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${price.toStringAsFixed(0)} XAF'),
+                                if (!isAvailable || isSoldOut)
+                                  Text('Sold out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            trailing: isAvailable && !isSoldOut
+                                ? IconButton(
+                                    icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange),
+                                    onPressed: () {
+                                      final cart = Provider.of<CartProvider>(context, listen: false);
+                                      cart.addItem(id, name, price, restaurantId: widget.restaurantId);
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                                    },
+                                  )
+                                : null,
+                            enabled: isAvailable && !isSoldOut,
+                            onTap: isAvailable && !isSoldOut
+                                ? () {
+                                    final cart = Provider.of<CartProvider>(context, listen: false);
+                                    cart.addItem(id, name, price, restaurantId: widget.restaurantId);
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                                  }
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
+                    if (cart.items.isNotEmpty)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton.extended(
+                          backgroundColor: Colors.deepOrange,
+                          foregroundColor: Colors.white,
+                          onPressed: () => Navigator.pushNamed(context, '/cart'),
+                          icon: const Icon(Icons.shopping_cart),
+                          label: Text('${cart.items.length} items • ${cart.total.toStringAsFixed(0)} XAF'),
                         ),
-                        trailing: isAvailable && !isSoldOut
-                            ? IconButton(
-                                icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange),
-                                onPressed: () {
-                                  final cart = Provider.of<CartProvider>(context, listen: false);
-                                  cart.addItem(id, name, price, restaurantId: widget.restaurantId);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
-                                },
-                              )
-                            : null,
-                        enabled: isAvailable && !isSoldOut,
-                        onTap: isAvailable && !isSoldOut
-                            ? () {
-                                final cart = Provider.of<CartProvider>(context, listen: false);
-                                cart.addItem(id, name, price, restaurantId: widget.restaurantId);
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
-                              }
-                            : null,
                       ),
-                    );
-                  },
+                  ],
                 );
               },
             ),
