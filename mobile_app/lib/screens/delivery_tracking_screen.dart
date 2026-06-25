@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -16,7 +17,6 @@ class DeliveryTrackingScreen extends StatefulWidget {
 }
 
 class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
-  final Completer<GoogleMapController> _mapController = Completer();
   late List<LatLng> _routePoints;
   late LatLng _pickupLocation;
   late LatLng _dropoffLocation;
@@ -95,7 +95,6 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
           setState(() {
             _driverIndex += 1;
           });
-          _moveCameraToDriver();
         } else {
           _timer?.cancel();
         }
@@ -141,61 +140,21 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
 
   LatLng get _driverLocation => _routePoints[_driverIndex];
 
-  Set<Marker> get _markers {
-    final markers = <Marker>{
-      Marker(
-        markerId: const MarkerId('pickup'),
-        position: _pickupLocation,
-        infoWindow: const InfoWindow(title: 'Restaurant'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-      ),
-      Marker(
-        markerId: const MarkerId('dropoff'),
-        position: _dropoffLocation,
-        infoWindow: const InfoWindow(title: 'Delivery address'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ),
-      Marker(
-        markerId: const MarkerId('driver'),
-        position: _driverLocation,
-        infoWindow: const InfoWindow(title: 'Rider'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      ),
-    };
+  List<Marker> get _markers {
+    final markers = <Marker>[
+      Marker(point: _pickupLocation, child: const Icon(Icons.restaurant, color: Colors.orange, size: 40)),
+      Marker(point: _dropoffLocation, child: const Icon(Icons.person, color: Colors.green, size: 40)),
+      Marker(point: _driverLocation, child: const Icon(Icons.my_location, color: Colors.blue, size: 40)),
+    ];
 
     if (_customerLocation != null) {
       markers.add(Marker(
-        markerId: const MarkerId('customer'),
-        position: LatLng(_customerLocation!.latitude, _customerLocation!.longitude),
-        infoWindow: const InfoWindow(title: 'Your location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        point: LatLng(_customerLocation!.latitude, _customerLocation!.longitude),
+        child: const Icon(Icons.person_pin, color: Colors.red, size: 40),
       ));
     }
 
     return markers;
-  }
-
-  Set<Polyline> get _polylines {
-    return {
-      Polyline(
-        polylineId: const PolylineId('route'),
-        points: _routePoints,
-        color: Colors.deepOrange,
-        width: 5,
-      ),
-    };
-  }
-
-  Future<void> _moveCameraToDriver() async {
-    if (!_mapController.isCompleted) return;
-    final controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLng(_driverLocation));
-  }
-
-  String get _etaText {
-    final remaining = _routePoints.length - 1 - _driverIndex;
-    final minutes = remaining * 3;
-    return '$minutes min';
   }
 
   @override
@@ -217,6 +176,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Delivery Tracking'),
+        centerTitle: true,
         actions: [
           if (_orderId != null)
             IconButton(
@@ -234,25 +194,32 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
             },
           ),
           const SizedBox(width: 8),
-          Text('Share location', style: const TextStyle(fontSize: 12)),
+          const Text('Share location', style: TextStyle(fontSize: 12)),
           const SizedBox(width: 16),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(target: _driverLocation, zoom: 14),
-              markers: _markers,
-              polylines: _polylines,
-              mapType: MapType.normal,
-              onMapCreated: (controller) {
-                if (!_mapController.isCompleted) {
-                  _mapController.complete(controller);
-                }
-              },
-              myLocationEnabled: _locationSharing,
-              myLocationButtonEnabled: _locationSharing,
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: _driverLocation,
+                initialZoom: 14,
+                interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'bitedash',
+                ),
+                if (_routePoints.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(points: _routePoints, color: Colors.deepOrange, strokeWidth: 5),
+                    ],
+                  ),
+                MarkerLayer(markers: _markers),
+              ],
             ),
           ),
           Padding(
@@ -296,5 +263,11 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
         ],
       ),
     );
+  }
+
+  String get _etaText {
+    final remaining = _routePoints.length - 1 - _driverIndex;
+    final minutes = remaining * 3;
+    return '$minutes min';
   }
 }

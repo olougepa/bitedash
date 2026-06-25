@@ -24,9 +24,20 @@ class UserCityPreferenceController extends Controller
         return $behaviors;
     }
 
+    protected function getBodyParams()
+    {
+        $req = Yii::$app->request;
+        $contentType = $req->getHeaders()->get('Content-Type');
+        if ($contentType && stripos($contentType, 'application/json') !== false) {
+            $rawBody = file_get_contents('php://input');
+            return json_decode($rawBody, true) ?: [];
+        }
+        return $req->bodyParams;
+    }
+
     public function actionCreate()
     {
-        $params = Yii::$app->getRequest()->getBodyParams();
+        $params = $this->getBodyParams();
         $cityId = $params['city_id'] ?? null;
         if (!$cityId) {
             Yii::$app->response->statusCode = 400;
@@ -47,7 +58,7 @@ class UserCityPreferenceController extends Controller
 
     public function actionUpdate()
     {
-        $params = Yii::$app->getRequest()->getBodyParams();
+        $params = $this->getBodyParams();
         $cityId = $params['city_id'] ?? null;
         $userId = Yii::$app->user->id;
         if (!$userId) {
@@ -75,7 +86,7 @@ class UserCityPreferenceController extends Controller
         return $pref ?: [];
     }
 
-    protected function verbs()
+    public function verbs()
     {
         return [
             'create' => ['POST'],

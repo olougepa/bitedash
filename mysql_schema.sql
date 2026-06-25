@@ -169,24 +169,29 @@ CREATE TABLE kyc_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE delivery_agents (
-   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-   user_id BIGINT UNSIGNED NOT NULL,
-   vehicle_type ENUM('bike','car','taxi','scooter') NOT NULL,
-   vehicle_registration VARCHAR(100),
-   rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-   is_active TINYINT(1) NOT NULL DEFAULT 1,
-   city_id BIGINT UNSIGNED NULL,
-   latitude DECIMAL(10,8),
-   longitude DECIMAL(11,8),
-   last_seen_at DATETIME NULL,
-   price_per_km DECIMAL(10,2) NOT NULL DEFAULT 1.50,
-   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-   INDEX idx_delivery_agent_user (user_id),
-   INDEX idx_delivery_agent_location (latitude, longitude),
-   INDEX idx_delivery_agents_city (city_id),
-   CONSTRAINT fk_delivery_agents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-   CONSTRAINT fk_delivery_agents_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    vehicle_type ENUM('bike','car','taxi','scooter') NOT NULL,
+    vehicle_registration VARCHAR(100),
+    agency_name VARCHAR(255),
+    rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    price_per_km DECIMAL(10,2) NOT NULL DEFAULT 1.50,
+    is_fixed_price TINYINT(1) NOT NULL DEFAULT 0,
+    fixed_price DECIMAL(10,2) DEFAULT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    photo_url VARCHAR(512),
+    city_id BIGINT UNSIGNED NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    last_seen_at DATETIME NULL,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_delivery_agent_user (user_id),
+    INDEX idx_delivery_agent_location (latitude, longitude),
+    INDEX idx_delivery_agents_city (city_id),
+    CONSTRAINT fk_delivery_agents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_delivery_agents_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE price_requests (
@@ -430,3 +435,26 @@ CREATE TABLE chat_messages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- Sample data for Cameroon cities
+INSERT INTO cities (id, name, country, latitude, longitude) VALUES
+(1, 'Yaoundé', 'Cameroon', 3.8480, 11.5186),
+(2, 'Douala', 'Cameroon', 4.0511, 9.7629),
+(3, 'Garoua', 'Cameroon', 9.3044, 13.3866),
+(4, 'Bamenda', 'Cameroon', 5.9667, 10.1500),
+(5, 'Buea', 'Cameroon', 4.1527, 9.2447);
+
+-- Sample system settings
+INSERT INTO system_settings (setting_key, setting_value) VALUES
+('default_price_per_km', '0.50'),
+('default_delivery_fee', '2.50'),
+('delivery_fee_fixed', '0'),
+('app_name', 'Bitedash'),
+('app_version', '1.0.0');
+
+-- Sample users (password: Test1234!)
+INSERT INTO users (id, email, password_hash, full_name, phone, role, status, city_id) VALUES
+(1, 'customer@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'John Customer', '+10000000001', 'customer', 'active', 1),
+(2, 'owner@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Jane Owner', '+10000000002', 'restaurant_owner', 'active', 1),
+(3, 'rider@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Mike Rider', '+10000000003', 'delivery_agent', 'active', 1),
+(4, 'admin@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Admin User', '+10000000004', 'admin', 'active', 1);

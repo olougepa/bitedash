@@ -41,7 +41,20 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(Icons.map, color: Colors.deepOrange.shade300, size: 40),
+      child: Icon(Icons.map, color: Colors.white, size: 40),
+    );
+  }
+
+  Widget _buildMealPhoto(String? photoUrl, String name) {
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(photoUrl, width: 50, height: 50, fit: BoxFit.cover),
+      );
+    }
+    return CircleAvatar(
+      backgroundColor: Colors.deepOrange,
+      child: Icon(Icons.restaurant_menu, color: Colors.white, size: 20),
     );
   }
 
@@ -72,8 +85,19 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
               final rating = double.tryParse('${restaurant['rating'] ?? 0}') ?? 0.0;
               final lat = double.tryParse('${restaurant['latitude'] ?? 0}') ?? 0.0;
               final lng = double.tryParse('${restaurant['longitude'] ?? 0}') ?? 0.0;
+              final logoUrl = restaurant['logo_url'] as String?;
+              final bannerUrl = restaurant['banner_url'] as String?;
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (bannerUrl != null && bannerUrl.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(image: NetworkImage(bannerUrl), fit: BoxFit.cover),
+                      ),
+                    ),
                   Card(
                     margin: const EdgeInsets.all(8),
                     child: Padding(
@@ -81,11 +105,35 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(restaurant['name'] ?? 'Restaurant', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          Row(children: [
-                            Icon(Icons.star, color: Colors.orange, size: 16),
-                            Text(' ${rating.toStringAsFixed(1)}', style: TextStyle(color: Colors.orange)),
-                          ]),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (logoUrl != null && logoUrl.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(logoUrl, width: 60, height: 60, fit: BoxFit.cover),
+                                )
+                              else
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.deepOrange,
+                                  child: const Icon(Icons.restaurant, color: Colors.deepOrange, size: 30),
+                                ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(restaurant['name'] ?? 'Restaurant', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                    Row(children: [
+                                      Icon(Icons.star, color: Colors.orange, size: 16),
+                                      Text(' ${rating.toStringAsFixed(1)}', style: TextStyle(color: Colors.orange)),
+                                    ]),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 8),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,10 +217,11 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
                     final qty = item['quantity'];
                     final hasExplicitQuantity = qty != null;
                     final isAvailable = item['is_available'] == 1 || item['is_available'] == true;
-                                        final isSoldOut = hasExplicitQuantity && (qty == 0);
+                    final isSoldOut = hasExplicitQuantity && (qty == 0);
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       child: ListTile(
+                        leading: _buildMealPhoto(item['photo_url'] as String?, name),
                         title: Text(name),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

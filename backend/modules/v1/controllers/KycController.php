@@ -4,6 +4,7 @@ namespace backend\modules\v1\controllers;
 use yii\rest\ActiveController;
 use yii\filters\Cors;
 use common\models\KycRecord;
+use common\models\User;
 use Yii;
 
 class KycController extends ActiveController
@@ -83,6 +84,25 @@ class KycController extends ActiveController
                     'message' => 'Your account has been verified. You can now use all features.',
                     'created_at' => date('Y-m-d H:i:s'),
                 ])->execute();
+                if ($record->entity_type === 'restaurant') {
+                    $user = User::findOne($record->user_id);
+                    Yii::$app->db->createCommand()->insert('restaurants', [
+                        'owner_id' => $record->user_id,
+                        'name' => 'My Restaurant',
+                        'description' => 'Restaurant for ' . ($user ? $user->full_name : 'New Owner'),
+                        'status' => 'draft',
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ])->execute();
+                } elseif ($record->entity_type === 'delivery_agent') {
+                    $user = User::findOne($record->user_id);
+                    $agencyName = $user ? ($user->full_name . ' Agency') : 'My Agency';
+                    Yii::$app->db->createCommand()->insert('delivery_agents', [
+                        'user_id' => $record->user_id,
+                        'agency_name' => $agencyName,
+                        'status' => 'active',
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ])->execute();
+                }
             }
         }
         if (isset($params['admin_remark'])) {

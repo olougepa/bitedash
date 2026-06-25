@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
@@ -16,7 +20,6 @@ class DeliveryAgentScreen extends StatefulWidget {
 }
 
 class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
-  final Completer<GoogleMapController> _mapController = Completer();
   bool _loading = true;
   List<Map<String, dynamic>> _orders = [];
   int? _selectedOrderId;
@@ -24,11 +27,14 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
   Position? _currentPosition;
   Timer? _locationTimer;
   bool _isOnline = true;
+  Map<String, dynamic>? _myAgent;
+  List<LatLng> _routePoints = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAgent();
       _loadOrders();
       _initLocation();
     });
@@ -38,6 +44,14 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
   void dispose() {
     _locationTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadAgent() async {
+    final api = Provider.of<ApiService>(context, listen: false);
+    final agent = await api.fetchMyDeliveryAgent();
+    if (mounted && agent != null) {
+      setState(() => _myAgent = agent);
+    }
   }
 
   Future<void> _initLocation() async {
@@ -52,24 +66,22 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
       setState(() => _locationSharing = true);
       _updateLocation();
-      _locationTimer = Timer.periodic(const Duration(seconds: 10), (_) => _updateLocation());
+      _locationTimer = Timer.periodic(const Duration(seconds: 5), (_) => _updateLocation());
     }
   }
 
   Future<void> _updateLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition();
-      setState(() => _currentPosition = position);
+      if (mounted) {
+        setState(() => _currentPosition = position);
+      }
 
       final api = Provider.of<ApiService>(context, listen: false);
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final token = auth.token;
-      if (token != null) {
-        await api.updateDeliveryLocation({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-        });
-      }
+      await api.updateDeliveryLocation({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      });
     } catch (_) {}
   }
 
@@ -78,6 +90,7 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     try {
       final api = Provider.of<ApiService>(context, listen: false);
       final orders = await api.fetchDeliveryOrders();
+      if (!mounted) return;
       setState(() => _orders = List<Map<String, dynamic>>.from(orders as List));
     } catch (e) {
       if (!mounted) return;
@@ -85,6 +98,18 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<List<LatLng>> _fetchRoute(double lat1, double lng1, double lat2, double lng2) async {
+    final response = await http.get(
+      Uri.parse('http://router.project-osrm.org/route/v1/driving/$lng1,$lat1;$lng2,$lat2?geometries=geojson'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final coords = data['routes'][0]['geometry']['coordinates'] as List<dynamic>;
+      return coords.map((c) => LatLng(c[1] as double, c[0] as double)).toList();
+    }
+    return [];
   }
 
   Future<void> _acceptOrder(int orderId) async {
@@ -109,43 +134,33 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     }
   }
 
-  Set<Marker> _buildMarkers() {
-    final markers = <Marker>{};
-
-    for (final order in _orders.where((o) => o['status'] == 'accepted')) {
-      final restaurant = order['restaurant'] as Map<String, dynamic>?;
-      if (restaurant != null) {
-        final lat = restaurant['latitude'] as double? ?? 37.7749;
-        final lng = restaurant['longitude'] as double? ?? -122.4194;
-        markers.add(Marker(
-          markerId: MarkerId('restaurant-${order['id']}'),
-          position: LatLng(lat, lng),
-          infoWindow: const InfoWindow(title: 'Restaurant'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        ));
+  Future<void> _showRouteForOrder(Map<String, dynamic> order) async {
+    if (_currentPosition == null) return;
+    final restaurant = order['restaurant'] as Map<String, dynamic>?;
+    final customerLoc = order['customer_location'] as Map<String, dynamic>?;
+    
+    if (restaurant != null || customerLoc != null) {
+      final targetLat = customerLoc?['latitude'] ?? (restaurant?['latitude'] as double? ?? 37.7749);
+      final targetLng = customerLoc?['longitude'] ?? (restaurant?['longitude'] as double? ?? -122.4194);
+      
+      final points = await _fetchRoute(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        targetLat,
+        targetLng,
+      );
+      if (mounted) {
+        setState(() => _routePoints = points);
       }
-
-      final customerLoc = order['customer_location'] as Map<String, dynamic>?;
-      final lat = customerLoc?['latitude'] as double? ?? (restaurant?['latitude'] as double? ?? 37.7749) + 0.01;
-      final lng = customerLoc?['longitude'] as double? ?? (restaurant?['longitude'] as double? ?? -122.4194) + 0.01;
-      markers.add(Marker(
-        markerId: MarkerId('customer-${order['id']}'),
-        position: LatLng(lat, lng),
-        infoWindow: const InfoWindow(title: 'Customer'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ));
     }
+  }
 
-    if (_currentPosition != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('driver'),
-        position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-        infoWindow: const InfoWindow(title: 'You'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      ));
-    }
-
-    return markers;
+  void _editAgency() {
+    if (_myAgent == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => _EditAgencyDialog(agent: _myAgent!, onSave: _loadAgent),
+    );
   }
 
   @override
@@ -172,102 +187,268 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Delivery Agent'),
+        centerTitle: true,
         actions: [
-          Switch(
-            value: _locationSharing,
-            onChanged: (v) => setState(() => _locationSharing = v),
+          IconButton(
+            icon: const Icon(Icons.local_offer),
+            tooltip: 'Coupons',
+            onPressed: () => Navigator.pushNamed(context, '/coupons'),
           ),
-          const SizedBox(width: 8),
-          Text('Share location', style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 16),
-          Switch(
-            value: _isOnline,
-            onChanged: (v) => setState(() => _isOnline = v),
-          ),
-          const SizedBox(width: 8),
-          Text('Online', style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 16),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: _currentPosition != null
-                          ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-                          : const LatLng(37.7749, -122.4194),
-                      zoom: 14,
-                    ),
-                    markers: _buildMarkers(),
-                    mapType: MapType.normal,
-                    onMapCreated: (controller) {
-                      if (!_mapController.isCompleted) {
-                        _mapController.complete(controller);
-                      }
-                    },
-                    myLocationEnabled: _locationSharing,
-                    myLocationButtonEnabled: true,
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  flex: 2,
-                  child: _orders.isEmpty
-                      ? const Center(child: Text('No active deliveries'))
-                      : ListView.builder(
-                          itemCount: _orders.length,
-                          itemBuilder: (context, index) {
-                            final order = _orders[index];
-                            final isSelected = _selectedOrderId == order['id'];
-                            return Card(
-                              color: isSelected ? Colors.deepOrange.shade50 : null,
-                              child: ListTile(
-                                title: Text('Order #${order['id']}'),
-                                subtitle: Text('Total: \$${order['total']} • Status: ${order['status']}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (order['status'] == 'accepted')
-                                      IconButton(
-                                        icon: const Icon(Icons.check, color: Colors.green),
-                                        onPressed: () => _markDelivered(order['id'] as int),
-                                        tooltip: 'Mark delivered',
-                                      ),
-                                    if (order['status'] == 'pending')
-                                      IconButton(
-                                        icon: const Icon(Icons.play_arrow, color: Colors.blue),
-                                        onPressed: () => _acceptOrder(order['id'] as int),
-                                        tooltip: 'Accept order',
-                                      ),
-                                  ],
-                                ),
-                                onTap: () {
-                                  setState(() => _selectedOrderId = order['id'] as int?);
-                                  _focusOnOrder(order);
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.deepOrange),
+              child: Text('Delivery Agent', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.list),
+              title: const Text('Deliveries'),
+              selected: true,
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Agency'),
+              onTap: () {
+                Navigator.pop(context);
+                _editAgency();
+              },
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.location_on),
+              title: const Text('Share location'),
+              value: _locationSharing,
+              onChanged: (v) => setState(() {
+                _locationSharing = v;
+                Navigator.pop(context);
+              }),
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.wifi),
+              title: const Text('Online'),
+              value: _isOnline,
+              onChanged: (v) => setState(() {
+                _isOnline = v;
+                Navigator.pop(context);
+              }),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () async {
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                await auth.logout();
+                if (mounted) Navigator.pushReplacementNamed(context, '/');
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Stack(
+        children: [
+          if (_myAgent != null && _myAgent!['price_per_km'] == null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.orange.shade50,
+                padding: const EdgeInsets.all(12),
+                child: const Text('Please set your price per km in Edit Agency', textAlign: TextAlign.center, style: TextStyle(color: Colors.orange)),
+              ),
+            ),
+          FlutterMap(
+            options: MapOptions(
+              initialCenter: _currentPosition != null
+                  ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+                  : const LatLng(37.7749, -122.4194),
+              initialZoom: 14,
+              interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'bitedash',
+              ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(points: _routePoints, color: Colors.deepOrange, strokeWidth: 4),
+                  ],
+                ),
+              MarkerLayer(
+                markers: _buildFlutterMarkers(),
+              ),
+              if (_locationSharing && _currentPosition != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                      child: const Icon(Icons.my_location, color: Colors.blue, size: 40),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          if (_loading)
+            const Center(child: CircularProgressIndicator()),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black26)],
+              ),
+              child: _orders.isEmpty
+                  ? const Center(child: Text('No active deliveries'))
+                  : ListView.builder(
+                      itemCount: _orders.length,
+                      itemBuilder: (context, index) {
+                        final order = _orders[index];
+                        final isSelected = _selectedOrderId == order['id'];
+                        return Card(
+                          color: isSelected ? Colors.deepOrange.shade50 : null,
+                          child: ListTile(
+                            title: Text('Order #${order['id']}'),
+                            subtitle: Text('Total: \$${order['total']} • Status: ${order['status']}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (order['status'] == 'accepted')
+                                  IconButton(
+                                    icon: const Icon(Icons.check, color: Colors.green),
+                                    onPressed: () => _markDelivered(order['id'] as int),
+                                    tooltip: 'Mark delivered',
+                                  ),
+                                if (order['status'] == 'pending')
+                                  IconButton(
+                                    icon: const Icon(Icons.play_arrow, color: Colors.blue),
+                                    onPressed: () => _acceptOrder(order['id'] as int),
+                                    tooltip: 'Accept order',
+                                  ),
+                              ],
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _selectedOrderId = order['id'] as int?;
+                                _routePoints = [];
+                              });
+                              _showRouteForOrder(order);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Future<void> _focusOnOrder(Map<String, dynamic> order) async {
-    if (!_mapController.isCompleted) return;
-    final controller = await _mapController.future;
+  List<Marker> _buildFlutterMarkers() {
+    final markers = <Marker>[];
 
-    final restaurant = order['restaurant'] as Map<String, dynamic>?;
-    if (restaurant != null) {
-      final lat = restaurant['latitude'] as double? ?? 37.7749;
-      final lng = restaurant['longitude'] as double? ?? -122.4194;
-      await controller.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15));
+    for (final order in _orders.where((o) => o['status'] == 'accepted')) {
+      final restaurant = order['restaurant'] as Map<String, dynamic>?;
+      final lat = restaurant?['latitude'] as double? ?? 37.7749;
+      final lng = restaurant?['longitude'] as double? ?? -122.4194;
+      markers.add(Marker(
+        point: LatLng(lat, lng),
+        child: const Icon(Icons.restaurant, color: Colors.orange, size: 40),
+      ));
+
+      final customerLoc = order['customer_location'] as Map<String, dynamic>?;
+      final cLat = customerLoc?['latitude'] as double? ?? lat + 0.01;
+      final cLng = customerLoc?['longitude'] as double? ?? lng + 0.01;
+      markers.add(Marker(
+        point: LatLng(cLat, cLng),
+        child: const Icon(Icons.person, color: Colors.green, size: 40),
+      ));
     }
+
+    return markers;
+  }
+}
+
+class _EditAgencyDialog extends StatefulWidget {
+  final Map<String, dynamic> agent;
+  final VoidCallback onSave;
+  const _EditAgencyDialog({required this.agent, required this.onSave});
+
+  @override
+  State<_EditAgencyDialog> createState() => _EditAgencyDialogState();
+}
+
+class _EditAgencyDialogState extends State<_EditAgencyDialog> {
+  late TextEditingController _nameController;
+  late TextEditingController _pricePerKmController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.agent['agency_name'] ?? '');
+    _pricePerKmController = TextEditingController(text: '${widget.agent['price_per_km'] ?? '1.50'}');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _pricePerKmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDefaultName = (widget.agent['agency_name'] ?? '').toString().contains(' Agency');
+    return AlertDialog(
+      title: const Text('Edit Agency Profile'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isDefaultName)
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.orange.shade50,
+                child: const Text('Please change the default agency name', style: TextStyle(color: Colors.orange)),
+              ),
+            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Agency Name')),
+            TextField(controller: _pricePerKmController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price per km')),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () async {
+            final api = Provider.of<ApiService>(context, listen: false);
+            await api.updateDeliveryAgent(widget.agent['id'] as int, {
+              'agency_name': _nameController.text,
+              'price_per_km': double.tryParse(_pricePerKmController.text) ?? 1.50,
+            });
+            widget.onSave();
+            Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
   }
 }

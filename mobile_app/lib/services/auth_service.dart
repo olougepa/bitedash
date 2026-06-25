@@ -5,13 +5,18 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 class AuthService {
-  final String baseUrl = 'https://api.bitedash.example.com/v1';
+  static const String _defaultBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:8000/v1');
+  final String _baseUrl;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
+  AuthService({String? baseUrl}) : _baseUrl = baseUrl ?? _defaultBaseUrl;
+
   Future<String?> login(String email, String password) async {
-    final uri = Uri.parse('$baseUrl/auth/login');
+    final uri = Uri.parse('$_baseUrl/auth/login');
     try {
-      final res = await http.post(uri, body: {'email': email, 'password': password});
+      final res = await http.post(uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}));
       if (res.statusCode == 200) {
         final j = jsonDecode(res.body);
         final access = j['access_token'] as String?;
@@ -23,9 +28,9 @@ class AuthService {
         }
       }
     } catch (_) {}
-    // fallback: local dev mock
-    if (email == 'demo@demo.com' && password == 'password') {
-      const token = 'demo-token';
+    // fallback: local dev mock (for testing without backend)
+    if (email == 'customer@example.com' && password == 'Test1234!') {
+      const token = 'customer-demo-token';
       await _storage.write(key: 'access_token', value: token);
       return token;
     }
@@ -52,9 +57,11 @@ class AuthService {
   Future<bool> refreshAccessToken() async {
     final refresh = await getRefreshToken();
     if (refresh == null) return false;
-    final uri = Uri.parse('$baseUrl/auth/refresh');
+    final uri = Uri.parse('$_baseUrl/auth/refresh');
     try {
-      final res = await http.post(uri, body: {'refresh_token': refresh});
+      final res = await http.post(uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'refresh_token': refresh}));
       if (res.statusCode == 200) {
         final j = jsonDecode(res.body);
         final access = j['access_token'] as String?;

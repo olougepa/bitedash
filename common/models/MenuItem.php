@@ -17,6 +17,7 @@ class MenuItem extends ActiveRecord
             ['name', 'string', 'max' => 255],
             [['price', 'rating', 'quantity', 'stock_quantity'], 'number'],
             ['is_available', 'boolean'],
+            ['photo_url', 'string', 'max' => 512],
             [['quantity', 'stock_quantity'], 'default', 'value' => null],
         ];
     }

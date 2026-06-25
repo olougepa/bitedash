@@ -7,6 +7,7 @@ use yii\web\BadRequestHttpException;
 use yii\web\UnauthorizedHttpException;
 use common\models\DeliveryAgent;
 use common\models\Order;
+use Yii;
 
 class DeliveryAgentController extends ActiveController
 {
@@ -26,15 +27,42 @@ class DeliveryAgentController extends ActiveController
         return $behaviors;
     }
 
+    protected function verbs()
+    {
+        return [
+            'index' => ['GET', 'POST'],
+            'view' => ['GET'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+            'location' => ['PATCH'],
+            'nearby' => ['GET'],
+            'price' => ['PATCH'],
+            'update-price' => ['PATCH'],
+        ];
+    }
+
     protected function getBodyParams()
     {
-        $req = \Yii::$app->request;
+        $req = Yii::$app->request;
         $contentType = $req->getHeaders()->get('Content-Type');
         if ($contentType && stripos($contentType, 'application/json') !== false) {
             $rawBody = file_get_contents('php://input');
             return json_decode($rawBody, true) ?: [];
         }
         return $req->bodyParams;
+    }
+
+    public function actionIndex()
+    {
+        $currentUser = Yii::$app->user->identity;
+        $query = DeliveryAgent::find()->with('user');
+
+        if ($currentUser && $currentUser->role === 'delivery_agent') {
+            $query->andWhere(['user_id' => $currentUser->id]);
+        }
+
+        return $query->all();
     }
 
     public function actionLocation()
@@ -63,8 +91,8 @@ class DeliveryAgentController extends ActiveController
 
     public function actionNearby()
     {
-        $lat = \Yii::$app->request->get('lat');
-        $lng = \Yii::$app->request->get('lng');
+        $lat = Yii::$app->request->get('lat');
+        $lng = Yii::$app->request->get('lng');
 
         $agents = DeliveryAgent::find()
             ->alias('da')
@@ -76,30 +104,32 @@ class DeliveryAgentController extends ActiveController
         return $agents;
     }
 
-    public function actionPrice()
+    public function actionPrice($id)
     {
-        $id = \Yii::$app->request->get('id');
-        $agent = $this->findModel($id);
+        $agent = DeliveryAgent::findOne($id);
+        if (!$agent) {
+            throw new BadRequestHttpException('Delivery agent not found');
+        }
         $body = $this->getBodyParams();
-        if (isset($body['price_per_km'])) {
-            $agent->price_per_km = $body['price_per_km'];
-            if ($agent->save()) {
-                return ['status' => 'updated', 'price_per_km' => $agent->price_per_km];
-            }
+        $agent->price_per_km = $body['price_per_km'] ?? $agent->price_per_km;
+        $agent->is_fixed_price = $body['is_fixed_price'] ?? 0;
+        $agent->fixed_price = $agent->is_fixed_price ? ($body['fixed_price'] ?? null) : null;
+        if ($agent->save()) {
+            return ['status' => 'updated', 'price_per_km' => $agent->price_per_km, 'is_fixed_price' => $agent->is_fixed_price, 'fixed_price' => $agent->fixed_price];
         }
         return $agent->getErrors();
     }
 
     protected function getCurrentUser()
     {
-        $request = \Yii::$app->request;
+        $request = Yii::$app->request;
         $authHeader = $request->getHeaders()->get('Authorization');
         if (!$authHeader || !preg_match('/Bearer\s+(.*)/', $authHeader, $matches)) {
             return null;
         }
 
         $token = $matches[1];
-        $secret = getenv('JWT_SECRET') ?: (\Yii::$app->params['jwtSecret'] ?? 'bitedash_secret_change_me');
+        $secret = getenv('JWT_SECRET') ?: (Yii::$app->params['jwtSecret'] ?? 'bitedash_secret_change_me');
         try {
             $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
         } catch (\Exception $e) {

@@ -20,4 +20,6 @@ $config = yii\helpers\ArrayHelper::merge(
     require __DIR__ . '/../config/web.php'
 );
 
+$config['components']['request']['enableCsrfValidation'] = false;
+
 (new yii\web\Application($config))->run();

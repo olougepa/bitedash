@@ -43,6 +43,30 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     throw Exception('Failed to load menu');
   }
 
+  Future<dynamic> fetchMyRestaurant() async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/restaurant?status=draft'), headers: headers);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+      if (data.isNotEmpty) return data[0] as Map<String, dynamic>;
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> updateRestaurant(int id, Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.patch(
+      Uri.parse('$baseUrl/restaurant/$id'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+  }
+
   Future<List<dynamic>> fetchAllMenuItems({int? cityId}) async {
     final query = cityId != null ? '?city_id=$cityId' : '';
     final response = await http.get(Uri.parse('$baseUrl/menu-item$query'));
@@ -213,7 +237,8 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
   Future<bool> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
-      body: {'email': email, 'password': password},
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -231,7 +256,8 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
   Future<bool> loginWithPhone(String phone, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
-      body: {'phone': phone, 'password': password},
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone, 'password': password}),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -433,7 +459,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     final headers = {'Content-Type': 'application/json'};
     if (token != null) headers['Authorization'] = 'Bearer $token';
     await http.patch(
-      Uri.parse('$baseUrl/delivery-agents/$id'),
+      Uri.parse('$baseUrl/delivery-agent/price?id=$id'),
       headers: headers,
       body: jsonEncode({'price_per_km': pricePerKm}),
     );
@@ -474,7 +500,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
   }
 
   Future<List<dynamic>> fetchCities() async {
-    final response = await http.get(Uri.parse('$baseUrl/city'));
+    final response = await http.get(Uri.parse('$baseUrl/cities'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
@@ -491,5 +517,29 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
       body: jsonEncode({'city_id': cityId}),
     );
     if (response.statusCode != 200) throw Exception('Failed to update city');
+  }
+
+  Future<dynamic> fetchMyDeliveryAgent() async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/delivery-agent'), headers: headers);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+      if (data.isNotEmpty) return data[0] as Map<String, dynamic>;
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> updateDeliveryAgent(int id, Map<String, dynamic> data) async {
+    final token = await _auth.getAccessToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    await http.patch(
+      Uri.parse('$baseUrl/delivery-agent/$id'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
   }
 }

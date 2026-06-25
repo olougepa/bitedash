@@ -17,6 +17,8 @@ class Restaurant extends ActiveRecord
             ['name', 'string', 'max' => 255],
             ['status', 'in', 'range' => ['draft', 'pending', 'active', 'suspended', 'closed']],
             [['latitude', 'longitude'], 'number'],
+            ['logo_url', 'string', 'max' => 512],
+            ['banner_url', 'string', 'max' => 512],
         ];
     }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/auth_provider.dart';
+import '../services/cart_provider.dart';
 import 'chat_screen.dart';
 
 class RidersScreen extends StatefulWidget {
@@ -32,6 +34,20 @@ class _RidersScreenState extends State<RidersScreen> {
     }
   }
 
+  void _requestAdminSupport() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(orderId: -1)));
+  }
+
+  Widget _buildRiderPhoto(String? photoUrl) {
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.network(photoUrl, width: 40, height: 40, fit: BoxFit.cover),
+      );
+    }
+    return const CircleAvatar(child: Icon(Icons.delivery_dining, color: Colors.deepOrange));
+  }
+
   void _selectRider(int riderId) {
     setState(() {
       _selectedRiderId = riderId;
@@ -41,11 +57,18 @@ class _RidersScreenState extends State<RidersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    final auth = Provider.of<AuthProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verified Delivery Riders'),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(icon: const Icon(Icons.support_agent), onPressed: _requestAdminSupport, tooltip: 'Contact Admin Support'),
+          if (cart.items.isNotEmpty)
+            IconButton(icon: const Icon(Icons.shopping_cart), onPressed: () => Navigator.pushNamed(context, '/checkout')),
+        ],
       ),
       body: Column(
         children: [
@@ -77,7 +100,10 @@ class _RidersScreenState extends State<RidersScreen> {
                     final r = riders[index] as Map<String, dynamic>;
                     final riderId = int.tryParse('${r['id']}') ?? 0;
                     final rating = double.tryParse('${r['rating'] ?? 0}') ?? 0.0;
-                    final pricePerKm = double.tryParse('${r['price_per_km'] ?? 1.5}') ?? 1.5;
+                    final isFixed = r['is_fixed_price'] == true || r['is_fixed_price'] == '1';
+                    final priceLabel = isFixed
+                        ? '\$${r['fixed_price'] ?? 0}'
+                        : '\$${double.tryParse('${r['price_per_km'] ?? 1.5}') ?? 1.5}/km';
                     final isVerified = r['status'] == 'active' || r['status'] == 'approved';
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -86,7 +112,7 @@ class _RidersScreenState extends State<RidersScreen> {
                           ListTile(
                             leading: Stack(
                               children: [
-                                const CircleAvatar(child: Icon(Icons.delivery_dining, color: Colors.deepOrange)),
+                                _buildRiderPhoto(r['photo_url'] as String?),
                                 if (isVerified)
                                   const Positioned(
                                     top: 0,
@@ -107,8 +133,8 @@ class _RidersScreenState extends State<RidersScreen> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('★ ${rating.toStringAsFixed(1)}'),
-                                Text('Price: \$${pricePerKm.toStringAsFixed(2)}/km'),
+                                Text('Rating: ${rating.toStringAsFixed(1)}★'),
+                                Text('Price: $priceLabel'),
                               ],
                             ),
                             trailing: IconButton(icon: const Icon(Icons.chat), onPressed: () => _openChat(widget.orderId, riderId)),

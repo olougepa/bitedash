@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  MenuItem,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -29,8 +30,8 @@ function DeliveryAgents() {
   const [open, setOpen] = useState(false);
   const [priceDialog, setPriceDialog] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
-  const [form, setForm] = useState({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50 });
-  const [priceForm, setPriceForm] = useState({ price_per_km: 1.50 });
+  const [form, setForm] = useState({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50, is_fixed_price: 0, fixed_price: '' });
+  const [priceForm, setPriceForm] = useState({ price_per_km: 1.50, is_fixed_price: '0', fixed_price: '' });
 
   const loadAgents = async () => {
     const response = await fetchDeliveryAgents();
@@ -49,16 +50,18 @@ function DeliveryAgents() {
         vehicle_type: agent.vehicle_type || '',
         rating: agent.rating || 0,
         price_per_km: agent.price_per_km || 1.50,
+        is_fixed_price: agent.is_fixed_price ? 1 : 0,
+        fixed_price: agent.fixed_price || '',
       });
     } else {
-      setForm({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50 });
+      setForm({ id: null, name: '', vehicle_type: '', rating: 0, price_per_km: 1.50, is_fixed_price: 0, fixed_price: '' });
     }
     setOpen(true);
   };
 
   const openPriceForm = (agent) => {
     setSelectedAgent(agent);
-    setPriceForm({ price_per_km: agent.price_per_km || 1.50 });
+    setPriceForm({ price_per_km: agent.price_per_km || 1.50, is_fixed_price: agent.is_fixed_price ? '1' : '0', fixed_price: agent.fixed_price || '' });
     setPriceDialog(true);
   };
 
@@ -68,6 +71,8 @@ function DeliveryAgents() {
       vehicle_type: form.vehicle_type,
       rating: form.rating,
       price_per_km: form.price_per_km,
+      is_fixed_price: form.is_fixed_price,
+      fixed_price: form.is_fixed_price ? form.fixed_price : null,
     };
     if (form.id) {
       await updateDeliveryAgent(form.id, payload);
@@ -80,7 +85,7 @@ function DeliveryAgents() {
 
   const handlePriceSave = async () => {
     if (selectedAgent) {
-      await updateDeliveryAgentPrice(selectedAgent.id, priceForm.price_per_km);
+      await updateDeliveryAgentPrice(selectedAgent.id, priceForm.price_per_km, priceForm.is_fixed_price === '1', priceForm.is_fixed_price === '1' ? priceForm.fixed_price : null);
     }
     setPriceDialog(false);
     loadAgents();
@@ -157,6 +162,27 @@ function DeliveryAgents() {
             value={form.price_per_km}
             onChange={(e) => setForm({ ...form, price_per_km: parseFloat(e.target.value) || 0 })}
           />
+          <TextField
+            fullWidth
+            select
+            label="Fixed Price Mode"
+            margin="dense"
+            value={form.is_fixed_price}
+            onChange={(e) => setForm({ ...form, is_fixed_price: parseInt(e.target.value) })}
+          >
+            <MenuItem value={0}>Variable (per km)</MenuItem>
+            <MenuItem value={1}>Fixed Price</MenuItem>
+          </TextField>
+          {form.is_fixed_price === 1 && (
+            <TextField
+              fullWidth
+              type="number"
+              label="Fixed Price ($)"
+              margin="dense"
+              value={form.fixed_price}
+              onChange={(e) => setForm({ ...form, fixed_price: parseFloat(e.target.value) || '' })}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
@@ -165,16 +191,38 @@ function DeliveryAgents() {
       </Dialog>
 
       <Dialog open={priceDialog} onClose={() => setPriceDialog(false)}>
-        <DialogTitle>Update Price per km</DialogTitle>
+        <DialogTitle>Update Delivery Fee</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
-            type="number"
-            label="Price per km ($)"
+            select
+            label="Fee Type"
             margin="dense"
-            value={priceForm.price_per_km}
-            onChange={(e) => setPriceForm({ price_per_km: parseFloat(e.target.value) || 0 })}
-          />
+            value={priceForm.is_fixed_price}
+            onChange={(e) => setPriceForm({ ...priceForm, is_fixed_price: e.target.value })}
+          >
+            <MenuItem value="0">Per km</MenuItem>
+            <MenuItem value="1">Fixed Price</MenuItem>
+          </TextField>
+          {priceForm.is_fixed_price === '1' ? (
+            <TextField
+              fullWidth
+              type="number"
+              label="Fixed Price ($)"
+              margin="dense"
+              value={priceForm.fixed_price}
+              onChange={(e) => setPriceForm({ ...priceForm, fixed_price: parseFloat(e.target.value) || '' })}
+            />
+          ) : (
+            <TextField
+              fullWidth
+              type="number"
+              label="Price per km ($)"
+              margin="dense"
+              value={priceForm.price_per_km}
+              onChange={(e) => setPriceForm({ ...priceForm, price_per_km: parseFloat(e.target.value) || 0 })}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPriceDialog(false)}>Cancel</Button>

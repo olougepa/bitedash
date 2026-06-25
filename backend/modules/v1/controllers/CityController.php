@@ -9,6 +9,17 @@ class CityController extends ActiveController
 {
     public $modelClass = 'common\models\City';
 
+    public function verbs()
+    {
+        return [
+            'index' => ['GET', 'HEAD', 'POST'],
+            'view' => ['GET', 'HEAD'],
+            'create' => ['POST'],
+            'update' => ['PUT', 'PATCH'],
+            'delete' => ['DELETE'],
+        ];
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -21,44 +32,5 @@ class CityController extends ActiveController
             ],
         ];
         return $behaviors;
-    }
-
-    protected function verbs()
-    {
-        return [
-            'index' => ['GET'],
-            'create' => ['POST'],
-            'update' => ['PUT', 'PATCH'],
-            'delete' => ['DELETE'],
-        ];
-    }
-
-    public function actionCreate()
-    {
-        $body = $this->getBodyParams();
-        $city = new City();
-        $city->load($body, '');
-        if ($city->save()) {
-            Yii::$app->db->createCommand()->insert('notifications', [
-                'user_id' => null,
-                'category' => 'admin',
-                'title' => 'City Added',
-                'message' => 'City ' . $city->name . ' has been added to the system',
-                'created_at' => date('Y-m-d H:i:s'),
-            ])->execute();
-            return $city;
-        }
-        return $city->getErrors();
-    }
-
-    protected function getBodyParams()
-    {
-        $req = Yii::$app->request;
-        $contentType = $req->getHeaders()->get('Content-Type');
-        if ($contentType && stripos($contentType, 'application/json') !== false) {
-            $rawBody = file_get_contents('php://input');
-            return json_decode($rawBody, true) ?: [];
-        }
-        return $req->bodyParams;
     }
 }

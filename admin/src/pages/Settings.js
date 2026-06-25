@@ -3,7 +3,7 @@ import { Box, Typography, TextField, Button, Snackbar, Alert } from '@mui/materi
 import { fetchSystemSettings, updateSystemSetting } from '../api';
 
 function Settings() {
-  const [settings, setSettings] = useState({ default_price_per_km: '1.50' });
+  const [settings, setSettings] = useState({ default_price_per_km: '1.50', delivery_fee_fixed: '0', fixed_delivery_fee: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
@@ -55,6 +55,27 @@ function Settings() {
           value={settings.default_price_per_km || ''}
           onChange={(e) => setSettings({ ...settings, default_price_per_km: e.target.value })}
           helperText="Base delivery fee multiplier for all riders"
+        />
+        <TextField
+          select
+          fullWidth
+          margin="dense"
+          label="Delivery Fee Type"
+          value={settings.delivery_fee_fixed || '0'}
+          onChange={(e) => setSettings({ ...settings, delivery_fee_fixed: e.target.value })}
+          SelectProps={{ native: true }}
+        >
+          <option value="0">Variable (based on distance)</option>
+          <option value="1">Fixed (flat rate)</option>
+        </TextField>
+        <TextField
+          fullWidth
+          margin="dense"
+          label="Fixed Delivery Fee (USD)"
+          value={settings.fixed_delivery_fee || ''}
+          onChange={(e) => setSettings({ ...settings, fixed_delivery_fee: e.target.value })}
+          disabled={settings.delivery_fee_fixed !== '1'}
+          helperText="Used when Fixed fee type is selected"
         />
         <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ mt: 2 }}>
           Save Settings

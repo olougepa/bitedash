@@ -16,9 +16,9 @@ function Cities() {
     setLoading(true);
     try {
       const res = await fetchCities();
-      setCities(res.data || []);
+      setCities(res.data || res || []);
     } catch (e) {
-      showSnack('Failed to load cities', 'error');
+      showSnack('Failed to load cities: ' + (e.response?.data?.message || e.message), 'error');
     }
     setLoading(false);
   }, []);
@@ -29,7 +29,7 @@ function Cities() {
 
   const handleOpen = (city = null) => {
     setEditingCity(city);
-    setFormData(city || { name: '', country: '', latitude: '', longitude: '' });
+    setFormData(city ? { name: city.name || '', country: city.country || '', latitude: city.latitude || '', longitude: city.longitude || '' } : { name: '', country: '', latitude: '', longitude: '' });
     setOpen(true);
   };
 
@@ -50,7 +50,10 @@ function Cities() {
       loadCities();
       handleClose();
     } catch (e) {
-      showSnack(editingCity ? 'Failed to update city' : 'Failed to create city', 'error');
+      const errorMsg = e.response?.data?.errors 
+        ? JSON.stringify(e.response.data.errors) 
+        : (e.response?.data?.message || e.message || (editingCity ? 'Failed to update city' : 'Failed to create city'));
+      showSnack(errorMsg, 'error');
     }
   };
 

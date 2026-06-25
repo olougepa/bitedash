@@ -4,6 +4,7 @@ namespace backend\modules\v1\controllers;
 use yii\rest\ActiveController;
 use yii\filters\Cors;
 use common\models\User;
+use common\models\DeliveryAgent;
 
 class UserController extends ActiveController
 {
@@ -27,5 +28,27 @@ class UserController extends ActiveController
     {
         $actions = parent::actions();
         return $actions;
+    }
+
+    public function actionIndex()
+    {
+        $users = User::find()
+            ->alias('u')
+            ->addSelect(['u.*', 'da.id as delivery_agent_id', 'da.price_per_km', 'da.is_fixed_price', 'da.fixed_price'])
+            ->leftJoin('delivery_agents da', 'da.user_id = u.id')
+            ->asArray()
+            ->all();
+        return $users;
+    }
+
+    protected function getBodyParams()
+    {
+        $req = \Yii::$app->request;
+        $contentType = $req->getHeaders()->get('Content-Type');
+        if ($contentType && stripos($contentType, 'application/json') !== false) {
+            $rawBody = file_get_contents('php://input');
+            return json_decode($rawBody, true) ?: [];
+        }
+        return $req->bodyParams;
     }
 }

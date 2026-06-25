@@ -13,6 +13,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loading = false;
+  String _orderType = 'delivery';
   String _paymentMethod = 'cash';
   String _cardNumber = '';
   String _cardExpiry = '';
@@ -46,15 +47,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         : null;
     final distance = 5.0;
     if (selectedRider != null) {
-      final riderFixed = selectedRider['delivery_fee_fixed'] == true || selectedRider['delivery_fee_fixed'] == '1';
-      if (riderFixed) return double.tryParse('${selectedRider['fixed_delivery_fee'] ?? 0}') ?? _defaultPricePerKm * distance;
+      final riderFixed = selectedRider['is_fixed_price'] == true || selectedRider['is_fixed_price'] == '1';
+      if (riderFixed) {
+        return double.tryParse('${selectedRider['fixed_price'] ?? 0}') ?? _defaultPricePerKm * distance;
+      }
       return (double.tryParse('${selectedRider['price_per_km'] ?? 1.5}') ?? _defaultPricePerKm) * distance;
     }
     return _defaultPricePerKm * distance;
   }
 
-  Widget _buildTotalRow(double subtotal) {
-    final deliveryFee = _calculateDeliveryFee();
+Widget _buildTotalRow(double subtotal) {
+    final deliveryFee = _orderType == 'delivery' ? _calculateDeliveryFee() : 0.0;
     final total = subtotal + deliveryFee;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -63,14 +66,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Text('Subtotal'),
           Text('\$${subtotal.toStringAsFixed(2)}'),
         ]),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(_deliveryFeeFixed ? 'Delivery Fee (Fixed)' : 'Delivery Fee (estimated)'),
-          Text('\$${deliveryFee.toStringAsFixed(2)}'),
-        ]),
+        if (_orderType == 'delivery')
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(_deliveryFeeFixed ? 'Delivery Fee (Fixed)' : 'Delivery Fee (estimated)'),
+            Text('\$${deliveryFee.toStringAsFixed(2)}'),
+          ]),
         const Text('Est. ~5km distance', style: TextStyle(color: Colors.grey, fontSize: 11)),
         const Divider(),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(_orderType == 'pickup' ? 'Pickup' : _orderType == 'reservation' ? 'Reservation' : 'Total', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ]),
       ],
@@ -82,13 +86,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = Provider.of<CartProvider>(context, listen: false);
     final api = Provider.of<ApiService>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final deliveryFee = _calculateDeliveryFee();
+    final deliveryFee = _orderType == 'delivery' ? _calculateDeliveryFee() : 0.0;
     final items = cart.items
         .map((e) => {'menu_item_id': e.id, 'quantity': e.quantity, 'unit_price': e.price})
         .toList();
     final total = cart.total + deliveryFee;
     final payload = {
-      'order_type': 'delivery',
+      'order_type': _orderType,
       'restaurant_id': cart.items.isNotEmpty ? cart.items.first.restaurantId : 1,
       'items': items,
       'sub_total': cart.total,
@@ -104,9 +108,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 : 'cash',
         'expiry': _paymentMethod == 'card' ? _cardExpiry : null,
       },
-      'delivery_location': _useCurrentLocation ? null : _deliveryLocation,
+      'delivery_location': _orderType == 'delivery' ? (_useCurrentLocation ? null : _deliveryLocation) : null,
       if (!auth.isAuthenticated) 'guest_phone': _guestPhone,
-      if (_selectedRiderId != null) 'delivery_agent_id': _selectedRiderId,
+      if (_orderType == 'delivery' && _selectedRiderId != null) 'delivery_agent_id': _selectedRiderId,
     };
     try {
       final res = await api.submitOrder(payload);
@@ -135,10 +139,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       appBar: AppBar(title: const Text('Checkout')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: ListView(children: [
-              const Text('Your Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+           Expanded(
+             child: ListView(children: [
+               const Text('Order Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+               const SizedBox(height: 8),
+               Wrap(
+                 spacing: 8,
+                 children: [
+                   ChoiceChip(
+                     label: const Text('Delivery'),
+                     selected: _orderType == 'delivery',
+                     onSelected: (_) => setState(() => _orderType = 'delivery'),
+                   ),
+                   ChoiceChip(
+                     label: const Text('Pickup'),
+                     selected: _orderType == 'pickup',
+                     onSelected: (_) => setState(() => _orderType = 'pickup'),
+                   ),
+                   ChoiceChip(
+                     label: const Text('Reservation'),
+                     selected: _orderType == 'reservation',
+                     onSelected: (_) => setState(() => _orderType = 'reservation'),
+                   ),
+                 ],
+               ),
+               const SizedBox(height: 16),
+               const Text('Your Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
               ...cart.items.map((e) => Dismissible(
                 key: Key('cart-item-${e.id}'),
@@ -169,51 +196,56 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ]),
                 ),
               )),
-              const SizedBox(height: 16),
-              const Text('Delivery Location', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.my_location),
-                title: const Text('Use current location'),
-                trailing: Switch(value: _useCurrentLocation, onChanged: (v) => setState(() => _useCurrentLocation = v)),
-              ),
-              if (!_useCurrentLocation)
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Enter delivery address',
-                    prefixIcon: Icon(Icons.location_on),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) => setState(() => _deliveryLocation = v),
-                ),
-              const SizedBox(height: 16),
-              const Text('Rider Selection', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _riders.isEmpty
-                  ? const Text('No riders available')
-                  : Wrap(
-                      spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Any rider'),
-                          selected: _selectedRiderId == null,
-                          onSelected: (_) => setState(() => _selectedRiderId = null),
-                        ),
-                        ..._riders.map<Widget>((r) {
-                          final riderId = int.tryParse('${r['id']}') ?? 0;
-                          final rating = double.tryParse('${r['rating'] ?? 0}') ?? 0.0;
-                          final pricePerKm = double.tryParse('${r['price_per_km'] ?? 1.5}') ?? _defaultPricePerKm;
-                          return ChoiceChip(
-                            label: Text('Rider $riderId (${rating.toStringAsFixed(1)}★) \$${pricePerKm}/km'),
-                            selected: _selectedRiderId == riderId,
-                            onSelected: (selected) {
-                              setState(() => _selectedRiderId = selected ? riderId : null);
-                            },
-                          );
-                        }).toList(),
-                      ],
-                    ),
-              if (!auth.isAuthenticated) ...[
+const SizedBox(height: 16),
+               if (_orderType == 'delivery') ...[
+                 const Text('Delivery Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                 const SizedBox(height: 8),
+                 ListTile(
+                   leading: const Icon(Icons.my_location),
+                   title: const Text('Use current location'),
+                   trailing: Switch(value: _useCurrentLocation, onChanged: (v) => setState(() => _useCurrentLocation = v)),
+                 ),
+                 if (!_useCurrentLocation)
+                   TextField(
+                     decoration: const InputDecoration(
+                       labelText: 'Enter delivery address',
+                       prefixIcon: Icon(Icons.location_on),
+                       border: OutlineInputBorder(),
+                     ),
+                     onChanged: (v) => setState(() => _deliveryLocation = v),
+                   ),
+                 const SizedBox(height: 16),
+                 const Text('Rider Selection', style: TextStyle(fontWeight: FontWeight.bold)),
+                 const SizedBox(height: 8),
+                 _riders.isEmpty
+                     ? const Text('No riders available')
+                     : Wrap(
+                         spacing: 8,
+                         children: [
+                           ChoiceChip(
+                             label: const Text('Any rider'),
+                             selected: _selectedRiderId == null,
+                             onSelected: (_) => setState(() => _selectedRiderId = null),
+                           ),
+                           ..._riders.map<Widget>((r) {
+                             final riderId = int.tryParse('${r['id']}') ?? 0;
+                             final rating = double.tryParse('${r['rating'] ?? 0}') ?? 0.0;
+                             final isFixed = r['is_fixed_price'] == true || r['is_fixed_price'] == '1';
+                             final priceLabel = isFixed
+                                 ? '\$${r['fixed_price'] ?? 0}'
+                                 : '\$${double.tryParse('${r['price_per_km'] ?? 1.5}') ?? _defaultPricePerKm}/km';
+                             return ChoiceChip(
+                               label: Text('Rider $riderId (${rating.toStringAsFixed(1)}★) $priceLabel'),
+                               selected: _selectedRiderId == riderId,
+                               onSelected: (selected) {
+                                 setState(() => _selectedRiderId = selected ? riderId : null);
+                               },
+                             );
+                           }).toList(),
+                         ],
+                       ),
+               ],
+               if (!auth.isAuthenticated) ...[
                 const SizedBox(height: 16),
                 TextField(
                   decoration: const InputDecoration(

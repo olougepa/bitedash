@@ -17,9 +17,6 @@ import {
   Box,
   CircularProgress,
   MenuItem,
-  InputLabel,
-  FormControl,
-  Select,
   Snackbar,
   Alert,
 } from '@mui/material';
@@ -178,6 +175,13 @@ function Users() {
                           {user.full_name || 'Unnamed'}
                           <Chip label={user.role} color={getRoleColor(user.role)} size="small" />
                           <Chip label={user.status} variant="outlined" size="small" />
+                          {user.role === 'delivery_agent' && (
+                            <Chip 
+                              label={user.is_fixed_price ? `Fixed: $${user.fixed_price}` : `$${user.price_per_km}/km`} 
+                              size="small" 
+                              variant="outlined"
+                            />
+                          )}
                         </Box>
                       }
                       secondary={user.email}
@@ -277,6 +281,7 @@ function Users() {
           <Button variant="contained" onClick={handleSaveKyc}>Save & Approve</Button>
         </DialogActions>
       </Dialog>
+
       <Snackbar open={snack.open} autoHideDuration={6000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity} onClose={() => setSnack({ ...snack, open: false })}>
           {snack.message}

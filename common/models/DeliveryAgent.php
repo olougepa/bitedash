@@ -17,6 +17,10 @@ class DeliveryAgent extends ActiveRecord
             ['vehicle_type', 'in', 'range' => ['bike', 'car', 'taxi', 'scooter']],
             ['rating', 'number'],
             ['price_per_km', 'number'],
+            ['agency_name', 'string', 'max' => 255],
+            ['is_fixed_price', 'boolean'],
+            ['fixed_price', 'number'],
+            ['photo_url', 'string', 'max' => 512],
             ['is_active', 'boolean'],
             [['latitude', 'longitude'], 'number'],
         ];

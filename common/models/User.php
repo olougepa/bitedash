@@ -15,6 +15,7 @@ class User extends ActiveRecord
         return [
             [['password_hash', 'role', 'status'], 'required'],
             [['email', 'phone'], 'string'],
+            ['city_id', 'integer'],
             ['email', 'email'],
             ['phone', 'string', 'max' => 50],
             ['role', 'in', 'range' => ['customer', 'restaurant_owner', 'delivery_agent', 'admin']],
