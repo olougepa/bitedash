@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Chip, MenuItem, Snackbar, Alert } from '@mui/material';
-import { fetchCoupons, fetchRestaurants, fetchDeliveryAgents, createCoupon, updateCoupon, deleteCoupon } from '../api';
+import api from '../api';
 
 function Coupons() {
   const [coupons, setCoupons] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState('');
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
@@ -17,17 +19,22 @@ function Coupons() {
   const loadCoupons = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchCoupons();
+      let url = '/coupon';
+      const params = [];
+      if (selectedRestaurant) params.push(`restaurant_id=${selectedRestaurant}`);
+      if (selectedAgent) params.push(`agent_id=${selectedAgent}`);
+      if (params.length) url += '?' + params.join('&');
+      const res = await api.get(url);
       setCoupons(res.data || []);
     } catch (e) {
       showSnack('Failed to load coupons', 'error');
     }
     setLoading(false);
-  }, []);
+  }, [selectedRestaurant, selectedAgent]);
 
   const loadRestaurants = useCallback(async () => {
     try {
-      const res = await fetchRestaurants();
+      const res = await api.get('/restaurant');
       setRestaurants(res.data || []);
     } catch (e) {
       showSnack('Failed to load restaurants', 'error');
@@ -36,7 +43,7 @@ function Coupons() {
 
   const loadAgents = useCallback(async () => {
     try {
-      const res = await fetchDeliveryAgents();
+      const res = await api.get('/delivery-agent');
       setAgents(res.data || []);
     } catch (e) {
       showSnack('Failed to load agents', 'error');
@@ -63,10 +70,10 @@ function Coupons() {
   const handleSave = async () => {
     try {
       if (editingCoupon) {
-        await updateCoupon(editingCoupon.id, formData);
+        await api.put(`/coupon/${editingCoupon.id}`, formData);
         showSnack('Coupon updated');
       } else {
-        await createCoupon(formData);
+        await api.post('/coupon', formData);
         showSnack('Coupon created');
       }
       loadCoupons();
@@ -79,7 +86,7 @@ function Coupons() {
   const handleDelete = async (id) => {
     if (window.confirm('Delete this coupon?')) {
       try {
-        await deleteCoupon(id);
+        await api.delete(`/coupon/${id}`);
         showSnack('Coupon deleted');
         loadCoupons();
       } catch (e) {
@@ -95,6 +102,16 @@ function Coupons() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Coupons</Typography>
         <Button variant="contained" onClick={() => handleOpen()}>Create Coupon</Button>
+      </Box>
+      <Box display="flex" gap={2} mb={2}>
+        <TextField select size="small" label="Filter by Restaurant" value={selectedRestaurant} onChange={(e) => setSelectedRestaurant(e.target.value)}>
+          <MenuItem value="">All Restaurants</MenuItem>
+          {restaurants.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Filter by Agent" value={selectedAgent} onChange={(e) => setSelectedAgent(e.target.value)}>
+          <MenuItem value="">All Agents</MenuItem>
+          {agents.map((a) => <MenuItem key={a.id} value={a.id}>{a.full_name || a.name}</MenuItem>)}
+        </TextField>
       </Box>
       <Table>
         <TableHead>

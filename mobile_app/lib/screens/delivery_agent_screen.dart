@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
@@ -29,6 +29,7 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
   bool _isOnline = true;
   Map<String, dynamic>? _myAgent;
   List<LatLng> _routePoints = [];
+  late Future<Map<String, dynamic>> _statsFuture;
 
   @override
   void initState() {
@@ -40,18 +41,21 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _locationTimer?.cancel();
-    super.dispose();
-  }
-
   Future<void> _loadAgent() async {
     final api = Provider.of<ApiService>(context, listen: false);
     final agent = await api.fetchMyDeliveryAgent();
     if (mounted && agent != null) {
-      setState(() => _myAgent = agent);
+      setState(() {
+        _myAgent = agent;
+        _statsFuture = api.fetchDeliveryStats(int.tryParse('${agent['id']}') ?? 0);
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _initLocation() async {
@@ -189,6 +193,11 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
         title: const Text('Delivery Agent'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Stats',
+            onPressed: () => _showStatsDialog(),
+          ),
           IconButton(
             icon: const Icon(Icons.local_offer),
             tooltip: 'Coupons',
@@ -333,20 +342,20 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
                                 if (order['status'] == 'accepted')
                                   IconButton(
                                     icon: const Icon(Icons.check, color: Colors.green),
-                                    onPressed: () => _markDelivered(order['id'] as int),
+                                    onPressed: () => _markDelivered(int.tryParse('${order['id']}') ?? 0),
                                     tooltip: 'Mark delivered',
                                   ),
                                 if (order['status'] == 'pending')
                                   IconButton(
                                     icon: const Icon(Icons.play_arrow, color: Colors.blue),
-                                    onPressed: () => _acceptOrder(order['id'] as int),
+                                    onPressed: () => _acceptOrder(int.tryParse('${order['id']}') ?? 0),
                                     tooltip: 'Accept order',
                                   ),
                               ],
                             ),
                             onTap: () {
                               setState(() {
-                                _selectedOrderId = order['id'] as int?;
+                                _selectedOrderId = int.tryParse('${order['id']}') ?? 0;
                                 _routePoints = [];
                               });
                               _showRouteForOrder(order);
@@ -358,6 +367,83 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showStatsDialog() async {
+    final stats = await _statsFuture;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delivery Stats'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    _buildStatCard('Today', '\$${stats['today_earnings'] ?? 0}', Icons.attach_money, Colors.green),
+                    _buildStatCard('Deliveries', '${stats['total_deliveries'] ?? 0}', Icons.delivery_dining, Colors.orange),
+                    _buildStatCard('Avg', '\$${stats['avg_earning'] ?? 0}', Icons.bar_chart, Colors.blue),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 150,
+                  child: _buildBarChart(stats['weekly_earnings'] ?? []),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarChart(List<dynamic> weeklyEarnings) {
+    if (weeklyEarnings.isEmpty) {
+      return const Center(child: Text('No earnings data'));
+    }
+    final barGroups = weeklyEarnings.asMap().map((i, e) {
+      final dayEarnings = double.tryParse('${e['earnings'] ?? 0}') ?? 0;
+      return MapEntry(i, BarChartGroupData(x: i, barRods: [BarChartRodData(toY: dayEarnings, color: Colors.deepOrange, width: 16)]));
+    }).values.toList();
+    return BarChart(
+      BarChartData(
+        barGroups: barGroups,
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                return Text(days[value.toInt() % days.length]);
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -439,7 +525,7 @@ class _EditAgencyDialogState extends State<_EditAgencyDialog> {
         ElevatedButton(
           onPressed: () async {
             final api = Provider.of<ApiService>(context, listen: false);
-            await api.updateDeliveryAgent(widget.agent['id'] as int, {
+            await api.updateDeliveryAgent(int.tryParse('${widget.agent['id']}') ?? 0, {
               'agency_name': _nameController.text,
               'price_per_km': double.tryParse(_pricePerKmController.text) ?? 1.50,
             });

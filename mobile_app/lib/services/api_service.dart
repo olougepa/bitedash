@@ -24,7 +24,13 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
   }
 
   Future<dynamic> fetchRestaurant(int id) async {
@@ -47,7 +53,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     final token = await _auth.getAccessToken();
     final headers = <String, String>{};
     if (token != null) headers['Authorization'] = 'Bearer $token';
-    final response = await http.get(Uri.parse('$baseUrl/restaurant?status=draft'), headers: headers);
+    final response = await http.get(Uri.parse('$baseUrl/restaurant'), headers: headers);
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
       if (data.isNotEmpty) return data[0] as Map<String, dynamic>;
@@ -331,7 +337,13 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
   }
 
   Future<List<dynamic>> fetchCouponsByAgent(int agentId) async {
@@ -390,7 +402,13 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
   }
 
   Future<void> createReview(Map<String, dynamic> data) async {
@@ -404,12 +422,12 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     );
   }
 
-  Future<void> updateKyc(String token, String role, String documentType, String documentNumber) async {
+  Future<void> updateKyc(String token, String role, String documentType, String documentNumber, {String? documentImageUrl}) async {
     final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     await http.post(
       Uri.parse('$baseUrl/kyc'),
       headers: headers,
-      body: jsonEncode({'entity_type': role == 'restaurant_owner' ? 'restaurant' : 'delivery_agent', 'document_type': documentType, 'document_number': documentNumber}),
+      body: jsonEncode({'entity_type': role == 'restaurant_owner' ? 'restaurant' : 'delivery_agent', 'document_type': documentType, 'document_number': documentNumber, 'document_image_url': documentImageUrl}),
     );
   }
 
@@ -421,7 +439,13 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
   }
 
   Future<void> sendMessage(int orderId, String message) async {
@@ -440,7 +464,13 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
   }
 
   Future<void> updateMenuItem(int id, Map<String, dynamic> data) async {
@@ -448,7 +478,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     final headers = {'Content-Type': 'application/json'};
     if (token != null) headers['Authorization'] = 'Bearer $token';
     await http.patch(
-      Uri.parse('$baseUrl/menu-items/$id'),
+      Uri.parse('$baseUrl/menu-item/$id'),
       headers: headers,
       body: jsonEncode(data),
     );
@@ -470,7 +500,7 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     final headers = {'Content-Type': 'application/json'};
     if (token != null) headers['Authorization'] = 'Bearer $token';
     await http.post(
-      Uri.parse('$baseUrl/menu-items'),
+      Uri.parse('$baseUrl/menu-item'),
       headers: headers,
       body: jsonEncode(data),
     );
@@ -504,7 +534,46 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
-    return [];
+    return [
+        {"id": 1, "name": "Yaoundé", "country": "Cameroon"},
+        {"id": 2, "name": "Douala", "country": "Cameroon"},
+        {"id": 3, "name": "Garoua", "country": "Cameroon"},
+        {"id": 4, "name": "Bamenda", "country": "Cameroon"},
+        {"id": 5, "name": "Buea", "country": "Cameroon"}
+      ];
+  }
+
+  Future<Map<String, dynamic>> fetchRestaurantStats(int restaurantId) async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/restaurant/$restaurantId/stats'), headers: headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    return {
+      'today_sales': 0,
+      'total_orders': 0,
+      'avg_order': 0,
+      'weekly_sales': [],
+      'popular_items': [],
+    };
+  }
+
+  Future<Map<String, dynamic>> fetchDeliveryStats(int agentId) async {
+    final token = await _auth.getAccessToken();
+    final headers = <String, String>{};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    final response = await http.get(Uri.parse('$baseUrl/delivery-agent/$agentId/stats'), headers: headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    return {
+      'today_earnings': 0,
+      'total_deliveries': 0,
+      'avg_earning': 0,
+      'weekly_earnings': [],
+    };
   }
 
   Future<void> updateUserCity(int? cityId) async {
@@ -556,5 +625,19 @@ Future<List<dynamic>> fetchRestaurants({int? cityId}) async {
       headers: headers,
       body: jsonEncode(data),
     );
+  }
+
+  Future<String> uploadFile(List<int> bytes, String fileName, String mimeType) async {
+    final token = await _auth.getAccessToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/menu-item/upload'));
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName, contentType: http.MediaType.parse(mimeType)));
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final body = await response.stream.bytesToString();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      return json['url'] as String;
+    }
+    throw Exception('Upload failed');
   }
 }

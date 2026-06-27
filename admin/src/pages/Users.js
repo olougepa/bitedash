@@ -19,10 +19,13 @@ import {
   MenuItem,
   Snackbar,
   Alert,
+  Avatar,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import UploadIcon from '@mui/icons-material/Upload';
+import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import api from '../api';
 
 function Users() {
@@ -33,6 +36,7 @@ function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [form, setForm] = useState({ id: null, email: '', full_name: '', role: 'customer', status: 'active', password: '' });
   const [kycForm, setKycForm] = useState({ document_type: 'business_license', document_image_url: '' });
+  const [kycUploading, setKycUploading] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
 
   const showSnack = (message, severity = 'success') => setSnack({ open: true, message, severity });
@@ -104,6 +108,20 @@ function Users() {
       loadUsers();
     } catch (e) {
       showSnack(form.id ? 'Failed to update user' : 'Failed to create user', 'error');
+    }
+  };
+
+const handleKycUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    setKycUploading(true);
+    try {
+      const response = await api.uploadFile(file, 'kyc/upload');
+      setKycForm({ ...kycForm, document_image_url: response.url });
+    } catch (e) {
+      console.error('Upload failed:', e);
+    } finally {
+      setKycUploading(false);
     }
   };
 
@@ -268,12 +286,35 @@ function Users() {
             <MenuItem value="driver_license">Driver License</MenuItem>
             <MenuItem value="business_license">Business License</MenuItem>
           </TextField>
+          <Box mt={2} display="flex" alignItems="center" gap={2}>
+            {kycForm.document_image_url && (kycForm.document_image_url.toLowerCase().endsWith('.pdf') || kycForm.document_image_url.toLowerCase().includes('.pdf')) ? (
+              <Avatar variant="rounded" sx={{ width: 64, height: 64, bgcolor: 'grey.200' }}>
+                <PictureAsPdfIcon />
+              </Avatar>
+            ) : kycForm.document_image_url ? (
+              <Avatar src={kycForm.document_image_url} variant="rounded" sx={{ width: 64, height: 64 }} />
+            ) : (
+              <Avatar variant="rounded" sx={{ width: 64, height: 64, bgcolor: 'grey.200' }}>
+                <PhotoCamera />
+              </Avatar>
+            )}
+            <Button
+              variant="outlined"
+              component="label"
+              disabled={kycUploading}
+              startIcon={kycUploading ? <CircularProgress size={20} /> : <PhotoCamera />}
+            >
+              {kycForm.document_image_url ? 'Change File' : 'Upload Document'}
+              <input hidden type="file" accept="image/*,application/pdf" onChange={handleKycUpload} />
+            </Button>
+          </Box>
           <TextField
             fullWidth
             label="Document Image URL"
             margin="dense"
             value={kycForm.document_image_url}
             onChange={(e) => setKycForm({ ...kycForm, document_image_url: e.target.value })}
+            helperText="Or paste URL for PDF/document"
           />
         </DialogContent>
         <DialogActions>

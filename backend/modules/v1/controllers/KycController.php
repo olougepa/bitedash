@@ -6,6 +6,7 @@ use yii\filters\Cors;
 use common\models\KycRecord;
 use common\models\User;
 use Yii;
+use yii\web\UploadedFile;
 
 class KycController extends ActiveController
 {
@@ -32,7 +33,53 @@ class KycController extends ActiveController
             'create' => ['POST'],
             'update' => ['PUT', 'PATCH'],
             'delete' => ['DELETE'],
+            'upload' => ['POST'],
         ];
+    }
+
+    public function actionUpload()
+    {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser) {
+            Yii::$app->response->statusCode = 401;
+            return ['error' => 'Unauthorized'];
+        }
+
+        $uploadedFile = UploadedFile::getInstanceByName('file');
+        if (!$uploadedFile) {
+            Yii::$app->response->statusCode = 400;
+            return ['error' => 'No file uploaded'];
+        }
+
+        $uploadDir = Yii::getAlias('@backend/web/uploads/kyc');
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $fileName = time() . '_' . $uploadedFile->name;
+        $filePath = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+        $uploadedFile->saveAs($filePath);
+
+        $baseUrl = Yii::$app->request->baseUrl;
+        return ['url' => $baseUrl . '/uploads/kyc/' . $fileName];
+    }
+
+    protected function getCurrentUser()
+    {
+        $request = Yii::$app->request;
+        $authHeader = $request->getHeaders()->get('Authorization');
+        if (!$authHeader || !preg_match('/Bearer\s+(.*)/', $authHeader, $matches)) {
+            return null;
+        }
+        $token = $matches[1];
+        $secret = getenv('JWT_SECRET') ?: (Yii::$app->params['jwtSecret'] ?? 'bitedash_secret_change_me');
+        try {
+            $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
+        } catch (\Exception $e) {
+            return null;
+        }
+        if (empty($decoded->sub)) return null;
+        return User::findOne($decoded->sub);
     }
 
     public function actionCreate()

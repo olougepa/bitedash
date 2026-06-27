@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
-import '../services/auth_provider.dart';
 import '../services/cart_provider.dart';
 import 'chat_screen.dart';
 
@@ -58,7 +57,6 @@ class _RidersScreenState extends State<RidersScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final auth = Provider.of<AuthProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verified Delivery Riders'),

@@ -134,4 +134,23 @@ export const fetchPriceRequests = () => api.get('/price-request');
 export const approvePriceRequest = (id) => api.put(`/price-request/${id}`, { status: 'approved' });
 export const rejectPriceRequest = (id, remark) => api.put(`/price-request/${id}`, { status: 'rejected', admin_remark: remark });
 
+export const fetchMenuItems = (restaurantId) => api.get(`/menu-item?restaurant_id=${restaurantId}`);
+export const createMenuItem = (item) => api.post('/menu-item', item);
+export const updateMenuItem = (id, item) => api.put(`/menu-item/${id}`, item);
+export const deleteMenuItem = (id) => api.delete(`/menu-item/${id}`);
+
+const uploadFile = async (file, endpoint) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/v1'}/${endpoint}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+    },
+  });
+  return response.data;
+};
+
+api.uploadFile = uploadFile;
+
 export default api;

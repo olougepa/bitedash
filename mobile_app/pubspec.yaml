@@ -18,6 +18,8 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   geolocator: ^13.0.2
   image_picker: ^1.1.2
+  file_picker: ^8.3.2
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:

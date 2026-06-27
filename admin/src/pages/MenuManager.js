@@ -8,6 +8,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemAvatar,
   IconButton,
   Dialog,
   DialogTitle,
@@ -17,9 +18,11 @@ import {
   Box,
   CircularProgress,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import api from '../api';
 
 function MenuManager() {
@@ -28,6 +31,8 @@ function MenuManager() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ id: null, name: '', price: '', description: '', quantity: '', is_available: true });
 
   const loadRestaurants = async () => {
@@ -71,10 +76,26 @@ function MenuManager() {
         quantity: item.quantity ?? '',
         is_available: item.is_available === 1 || item.is_available === true,
       });
+      setPhotoUrl(item.photo_url || '');
     } else {
       setForm({ id: null, name: '', price: '', description: '', quantity: '', is_available: true });
+      setPhotoUrl('');
     }
     setOpen(true);
+  };
+
+  const handleUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const response = await api.uploadFile(file, 'menu-item/upload');
+      setPhotoUrl(response.url);
+    } catch (e) {
+      console.error('Upload failed:', e);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -85,11 +106,12 @@ function MenuManager() {
       description: form.description,
       quantity: form.quantity === '' ? null : parseInt(form.quantity),
       is_available: form.is_available ? 1 : 0,
+      photo_url: photoUrl,
     };
     if (form.id) {
-      await api.put(`/menu-items/${form.id}`, payload);
+      await api.put(`/menu-item/${form.id}`, payload);
     } else {
-      await api.post('/menu-items', payload);
+      await api.post('/menu-item', payload);
     }
     setOpen(false);
     loadMenuItems(selectedRestaurant);
@@ -130,18 +152,29 @@ function MenuManager() {
                 </Box>
               ) : (
                 <List>
-                  {menuItems.map((item) => (
-                    <ListItem key={item.id} divider secondaryAction={
-                      <IconButton edge="end" aria-label="edit" onClick={() => openForm(item)}>
-                        <EditIcon />
-                      </IconButton>
-                    }>
-                      <ListItemText
-                        primary={item.name}
-                        secondary={`$${item.price} | ${item.quantity != null ? `Qty: ${item.quantity}` : 'Unlimited'} | ${item.is_available ? 'Available' : 'Sold Out'}`}
-                      />
+{menuItems.length === 0 ? (
+                    <ListItem>
+                      <ListItemText primary="No menu items yet. Add your first item!" />
                     </ListItem>
-                  ))}
+                  ) : (
+                    menuItems.map((item) => (
+                      <ListItem key={item.id} divider secondaryAction={
+                        <IconButton edge="end" aria-label="edit" onClick={() => openForm(item)}>
+                          <EditIcon />
+                        </IconButton>
+                      }>
+                        {item.photo_url && (
+                          <ListItemAvatar>
+                            <Avatar src={item.photo_url} variant="rounded" sx={{ width: 64, height: 64, mr: 1 }} />
+                          </ListItemAvatar>
+                        )}
+                        <ListItemText
+                          primary={item.name}
+                          secondary={`$${item.price} | ${item.quantity != null ? `Qty: ${item.quantity}` : 'Unlimited'} | ${item.is_available ? 'Available' : 'Sold Out'}`}
+                        />
+                      </ListItem>
+                    ))
+                  )}
                 </List>
               )}
             </Paper>
@@ -195,6 +228,20 @@ function MenuManager() {
             <MenuItem value="1">Yes</MenuItem>
             <MenuItem value="0">No</MenuItem>
           </TextField>
+          <Box mt={2} display="flex" alignItems="center" gap={2}>
+            <Avatar src={photoUrl} variant="rounded" sx={{ width: 64, height: 64, bgcolor: 'grey.200' }}>
+              <PhotoCamera />
+            </Avatar>
+            <Button
+              variant="outlined"
+              component="label"
+              disabled={uploading}
+              startIcon={uploading ? <CircularProgress size={20} /> : <PhotoCamera />}
+            >
+              {photoUrl ? 'Change Photo' : 'Upload Photo'}
+              <input hidden type="file" accept="image/*" onChange={handleUpload} />
+            </Button>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>

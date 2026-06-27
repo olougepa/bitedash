@@ -5,7 +5,11 @@ use yii\rest\ActiveController;
 use yii\filters\Cors;
 use common\models\MenuItem;
 use common\models\Restaurant;
+use common\models\User;
+use yii\web\UploadedFile;
 use Yii;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class MenuItemController extends ActiveController
 {
@@ -33,34 +37,29 @@ class MenuItemController extends ActiveController
             'update' => ['PUT', 'PATCH'],
             'delete' => ['DELETE'],
             'menu-scan' => ['POST'],
+            'upload' => ['POST'],
         ];
+    }
+
+    public function actions()
+    {
+        $actions = parent::actions();
+        unset($actions['index']); // Use custom actionIndex instead of REST IndexAction
+        return $actions;
     }
 
     public function actionIndex()
     {
-        $currentUser = Yii::$app->user->identity;
         $query = MenuItem::find();
 
-        if ($currentUser && $currentUser->role === 'restaurant_owner') {
-            $ownedRestaurantIds = Restaurant::find()
-                ->select('id')
-                ->where(['owner_id' => $currentUser->id])
-                ->column();
-            if (!empty($ownedRestaurantIds)) {
-                $query->andWhere(['restaurant_id' => $ownedRestaurantIds]);
-            } else {
-                $query->andWhere(['restaurant_id' => -1]);
-            }
-        }
-
         $restaurantId = Yii::$app->request->get('restaurant_id');
-        if ($restaurantId) {
-            $query->andWhere(['restaurant_id' => $restaurantId]);
+        if ($restaurantId !== null && $restaurantId !== '') {
+            $query->andWhere(['restaurant_id' => (int)$restaurantId]);
         }
 
         $cityId = Yii::$app->request->get('city_id');
-        if ($cityId) {
-            $query->andWhere(['city_id' => $cityId]);
+        if ($cityId !== null && $cityId !== '') {
+            $query->andWhere(['city_id' => (int)$cityId]);
         }
 
         return $query->all();
@@ -68,13 +67,17 @@ class MenuItemController extends ActiveController
 
     public function actionCreate()
     {
-        $currentUser = Yii::$app->user->identity;
-        $params = Yii::$app->getRequest()->getBodyParams();
+        $currentUser = $this->getCurrentUser();
+        $params = $this->getBodyParams();
 
         $menuItem = new MenuItem();
         $menuItem->load($params, '');
 
-        if ($currentUser && $currentUser->role === 'restaurant_owner') {
+        // Admin or when restaurant_id provided in request
+        if (isset($params['restaurant_id'])) {
+            $menuItem->restaurant_id = (int)$params['restaurant_id'];
+        } elseif ($currentUser && $currentUser->role === 'restaurant_owner') {
+            // For restaurant owners, auto-assign to their restaurant
             $ownedRestaurant = Restaurant::find()
                 ->where(['owner_id' => $currentUser->id])
                 ->one();
@@ -91,9 +94,38 @@ class MenuItemController extends ActiveController
         return $menuItem->getErrors();
     }
 
+    protected function getBodyParams()
+    {
+        $req = Yii::$app->request;
+        $contentType = $req->getHeaders()->get('Content-Type');
+        if ($contentType && stripos($contentType, 'application/json') !== false) {
+            $rawBody = file_get_contents('php://input');
+            return json_decode($rawBody, true) ?: [];
+        }
+        return $req->bodyParams;
+    }
+
+    protected function getCurrentUser()
+    {
+        $request = Yii::$app->request;
+        $authHeader = $request->getHeaders()->get('Authorization');
+        if (!$authHeader || !preg_match('/Bearer\s+(.*)/', $authHeader, $matches)) {
+            return null;
+        }
+        $token = $matches[1];
+        $secret = getenv('JWT_SECRET') ?: (Yii::$app->params['jwtSecret'] ?? 'bitedash_secret_change_me');
+        try {
+            $decoded = JWT::decode($token, new Key($secret, 'HS256'));
+        } catch (\Exception $e) {
+            return null;
+        }
+        if (empty($decoded->sub)) return null;
+        return User::findOne($decoded->sub);
+    }
+
     public function actionMenuScan()
     {
-        $currentUser = Yii::$app->user->identity;
+        $currentUser = $this->getCurrentUser();
         if (!$currentUser || $currentUser->role !== 'restaurant_owner') {
             Yii::$app->response->statusCode = 403;
             return ['error' => 'Only restaurant owners can scan menus'];
@@ -122,7 +154,7 @@ class MenuItemController extends ActiveController
             $lines = explode("\n", $ocrText);
             foreach ($lines as $line) {
                 $line = trim($line);
-                if (preg_match('/(.+?)\s*[\$]\s*(\d+(?:\.\d+)?)/', $line, $matches)) {
+                if (preg_match('/(.+?)\s*\$(\s*\d+(?:\.\d+)?)/', $line, $matches)) {
                     $extractedItems[] = [
                         'name' => $matches[1],
                         'price' => (float)$matches[2],
@@ -152,5 +184,32 @@ class MenuItemController extends ActiveController
                 unlink($tempPath);
             }
         }
+    }
+
+    public function actionUpload()
+    {
+        $currentUser = $this->getCurrentUser();
+        if (!$currentUser) {
+            Yii::$app->response->statusCode = 401;
+            return ['error' => 'Unauthorized'];
+        }
+
+        $uploadedFile = UploadedFile::getInstanceByName('file');
+        if (!$uploadedFile) {
+            Yii::$app->response->statusCode = 400;
+            return ['error' => 'No file uploaded'];
+        }
+
+        $uploadDir = Yii::getAlias('@backend/web/uploads/' . $currentUser->id);
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $fileName = time() . '_' . $uploadedFile->name;
+        $filePath = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+        $uploadedFile->saveAs($filePath);
+
+        $baseUrl = Yii::$app->request->baseUrl;
+        return ['url' => $baseUrl . '/uploads/' . $currentUser->id . '/' . $fileName];
     }
 }

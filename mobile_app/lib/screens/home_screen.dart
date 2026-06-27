@@ -9,6 +9,7 @@ import 'restaurant_screen.dart';
 import 'coupons_screen.dart';
 import 'riders_screen.dart';
 import 'notifications_screen.dart';
+import '../services/l10n.dart';
 
 enum SearchMode { restaurants, meals }
 
@@ -84,18 +85,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final cart = context.watch<CartProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BiteDash'),
+        title: Text(L10n.t('home')),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
           IconButton(icon: const Icon(Icons.local_offer), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CouponsScreen()))),
           IconButton(icon: const Icon(Icons.people), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RidersScreen()))),
           IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+          IconButton(icon: const Icon(Icons.language, color: Colors.white), tooltip: 'Language', onPressed: () {
+            L10n.setLanguage(L10n.language == 'en' ? 'fr' : 'en');
+            setState(() {});
+          }),
           if (auth.isAuthenticated) ...[
             PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'profile') Navigator.pushNamed(context, '/profile');
-                if (value == 'logout') {
+                 if (value == 'logout') {
                   Provider.of<AuthProvider>(context, listen: false).logout();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out')));
                 }
@@ -333,13 +338,19 @@ class _HomeScreenState extends State<HomeScreen> {
           itemCount: restaurants.length,
           itemBuilder: (context, index) {
             final restaurant = restaurants[index] as Map<String, dynamic>;
+            final logoUrl = restaurant['logo_url'] as String?;
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.deepOrange.shade100,
-                  child: const Icon(Icons.restaurant, color: Colors.deepOrange, size: 18),
-                ),
+                leading: logoUrl != null && (logoUrl as String).isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.network(logoUrl, width: 36, height: 36, fit: BoxFit.cover),
+                      )
+                    : CircleAvatar(
+                        backgroundColor: Colors.deepOrange.shade100,
+                        child: const Icon(Icons.restaurant, color: Colors.deepOrange, size: 18),
+                      ),
                 title: Text(restaurant['name'] ?? 'Restaurant', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                 subtitle: Text(restaurant['description'] ?? '', style: const TextStyle(fontSize: 12)),
                 trailing: const Icon(Icons.chevron_right, size: 16),
@@ -377,12 +388,18 @@ class _HomeScreenState extends State<HomeScreen> {
           itemBuilder: (context, index) {
             final item = items[index] as Map<String, dynamic>;
             final price = double.tryParse('${item['price']}') ?? 0.0;
+            final photoUrl = item['photo_url'] as String?;
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: ListTile(
-                leading: const Icon(Icons.restaurant_menu, color: Colors.deepOrange, size: 18),
+                leading: photoUrl != null && (photoUrl as String).isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.network(photoUrl, width: 36, height: 36, fit: BoxFit.cover),
+                      )
+                    : const Icon(Icons.restaurant_menu, color: Colors.deepOrange, size: 18),
                 title: Text(item['name'] ?? 'Meal', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                subtitle: Text('\$${price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                subtitle: Text('${price.toStringAsFixed(0)} XAF', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 trailing: IconButton(
                   icon: const Icon(Icons.add_shopping_cart, color: Colors.deepOrange, size: 18),
                   onPressed: () {

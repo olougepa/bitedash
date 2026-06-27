@@ -74,8 +74,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     int? orderId;
     if (args is int) {
       orderId = args;
-    } else if (args is Map<String, dynamic> && args['id'] is int) {
-      orderId = args['id'] as int;
+    } else if (args is Map<String, dynamic>) {
+      orderId = int.tryParse('${args['id']}') ?? 0;
       _orderData = args;
     }
     setState(() {

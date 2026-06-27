@@ -34,6 +34,21 @@ class AuthService {
       await _storage.write(key: 'access_token', value: token);
       return token;
     }
+    if (email == 'owner@example.com' && password == 'Test1234!') {
+      const token = 'owner-demo-token';
+      await _storage.write(key: 'access_token', value: token);
+      return token;
+    }
+    if (email == 'rider@example.com' && password == 'Test1234!') {
+      const token = 'rider-demo-token';
+      await _storage.write(key: 'access_token', value: token);
+      return token;
+    }
+    if (email == 'admin@example.com' && password == 'Test1234!') {
+      const token = 'admin-demo-token';
+      await _storage.write(key: 'access_token', value: token);
+      return token;
+    }
     return null;
   }
 
@@ -83,5 +98,42 @@ class AuthService {
     if (refreshToken != null) {
       await _storage.write(key: 'refresh_token', value: refreshToken);
     }
+  }
+
+  Future<Map<String, dynamic>?> getDemoUser(String email) async {
+    if (email == 'owner@example.com') {
+      return {
+        'id': 2,
+        'email': 'owner@example.com',
+        'full_name': 'Jane Owner',
+        'phone': '+10000000002',
+        'role': 'restaurant_owner',
+        'status': 'active',
+        'city_id': 1,
+      };
+    }
+    if (email == 'rider@example.com') {
+      return {
+        'id': 3,
+        'email': 'rider@example.com',
+        'full_name': 'Mike Rider',
+        'phone': '+10000000003',
+        'role': 'delivery_agent',
+        'status': 'active',
+        'city_id': 1,
+      };
+    }
+    if (email == 'admin@example.com') {
+      return {
+        'id': 4,
+        'email': 'admin@example.com',
+        'full_name': 'Admin User',
+        'phone': '+10000000004',
+        'role': 'admin',
+        'status': 'active',
+        'city_id': 1,
+      };
+    }
+    return null;
   }
 }

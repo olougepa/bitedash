@@ -93,8 +93,8 @@ class _CouponManagerScreenState extends State<CouponManagerScreen> {
   Future<void> _toggleActive(Map<String, dynamic> coupon) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final api = Provider.of<ApiService>(context, listen: false);
-    final id = coupon['id'] as int?;
-    if (id == null) return;
+    final id = int.tryParse('${coupon['id']}') ?? 0;
+    if (id == 0) return;
     
     final body = {'is_active': !(coupon['is_active'] as bool? ?? true)};
     

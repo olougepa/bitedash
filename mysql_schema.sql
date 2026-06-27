@@ -86,24 +86,26 @@ CREATE TABLE addresses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE restaurants (
-   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-   owner_id BIGINT UNSIGNED NOT NULL,
-   name VARCHAR(255) NOT NULL,
-   description TEXT,
-   address_id BIGINT UNSIGNED,
-   status ENUM('draft','pending','active','suspended','closed') NOT NULL DEFAULT 'pending',
-   is_open TINYINT(1) NOT NULL DEFAULT 0,
-   latitude DECIMAL(10,8),
-   longitude DECIMAL(11,8),
-   city_id BIGINT UNSIGNED NULL,
-   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-   UNIQUE KEY uq_restaurant_owner_name (owner_id, name),
-   INDEX idx_restaurant_owner (owner_id),
-   INDEX idx_restaurants_city (city_id),
-   CONSTRAINT fk_restaurants_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-   CONSTRAINT fk_restaurants_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL,
-   CONSTRAINT fk_restaurants_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    owner_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    address_id BIGINT UNSIGNED,
+    status ENUM('draft','pending','active','suspended','closed') NOT NULL DEFAULT 'pending',
+    is_open TINYINT(1) NOT NULL DEFAULT 0,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    city_id BIGINT UNSIGNED NULL,
+    logo_url VARCHAR(512),
+    banner_url VARCHAR(512),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_restaurant_owner_name (owner_id, name),
+    INDEX idx_restaurant_owner (owner_id),
+    INDEX idx_restaurants_city (city_id),
+    CONSTRAINT fk_restaurants_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_restaurants_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+    CONSTRAINT fk_restaurants_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE menu_categories (
@@ -118,27 +120,28 @@ CREATE TABLE menu_categories (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE menu_items (
-   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-   restaurant_id BIGINT UNSIGNED NOT NULL,
-   category_id BIGINT UNSIGNED NULL,
-   name VARCHAR(255) NOT NULL,
-   description TEXT,
-   price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-   currency CHAR(3) NOT NULL DEFAULT 'USD',
-   rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-   quantity INT UNSIGNED DEFAULT 0,
-   stock_quantity INT UNSIGNED DEFAULT 0,
-   is_available TINYINT(1) NOT NULL DEFAULT 1,
-   preparation_time INT NOT NULL DEFAULT 15,
-   city_id BIGINT UNSIGNED NULL,
-   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-   INDEX idx_menu_item_restaurant (restaurant_id),
-   INDEX idx_menu_item_category (category_id),
-   INDEX idx_menu_items_city (city_id),
-   CONSTRAINT fk_menu_items_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
-   CONSTRAINT fk_menu_items_category FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL,
-   CONSTRAINT fk_menu_items_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    restaurant_id BIGINT UNSIGNED NOT NULL,
+    category_id BIGINT UNSIGNED NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    currency CHAR(3) NOT NULL DEFAULT 'USD',
+    rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    quantity INT UNSIGNED DEFAULT 0,
+    stock_quantity INT UNSIGNED DEFAULT 0,
+    is_available TINYINT(1) NOT NULL DEFAULT 1,
+    preparation_time INT NOT NULL DEFAULT 15,
+    city_id BIGINT UNSIGNED NULL,
+    photo_url VARCHAR(512),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_menu_item_restaurant (restaurant_id),
+    INDEX idx_menu_item_category (category_id),
+    INDEX idx_menu_items_city (city_id),
+    CONSTRAINT fk_menu_items_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_menu_items_category FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL,
+    CONSTRAINT fk_menu_items_city FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE payment_methods (
@@ -458,3 +461,14 @@ INSERT INTO users (id, email, password_hash, full_name, phone, role, status, cit
 (2, 'owner@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Jane Owner', '+10000000002', 'restaurant_owner', 'active', 1),
 (3, 'rider@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Mike Rider', '+10000000003', 'delivery_agent', 'active', 1),
 (4, 'admin@example.com', '$2y$10$EqlnOtKR/qLVhYGrLLFR2ux05VqRL.84n4clsQdtpS0hb/eyy1xCa', 'Admin User', '+10000000004', 'admin', 'active', 1);
+-- Sample restaurants for demo
+INSERT INTO restaurants (id, owner_id, name, description, status, city_id) VALUES
+(1, 2, 'Le Gourmet', 'Fine dining French cuisine', 'active', 1),
+(2, 2, 'Savory Bites', 'Local Cameroonian dishes', 'active', 1);
+
+-- Sample menu items
+INSERT INTO menu_items (id, restaurant_id, name, description, price, is_available) VALUES
+(1, 1, 'Filet Mignon', 'Grilled beef with herbs', 8500, 1),
+(2, 1, 'Salmon Risotto', 'Creamy risotto with fresh salmon', 6500, 1),
+(3, 2, 'Ndolé', 'Traditional Cameroon dish', 3500, 1),
+(4, 2, 'Grilled Fish', 'Fresh fish with plantains', 4500, 1);

@@ -18,7 +18,15 @@ class AuthProvider extends ChangeNotifier {
       try {
         final profile = await apiService.fetchProfile(_token!);
         user = User.fromJson(profile);
-      } catch (_) {}
+      } catch (_) {
+        // Fallback for demo tokens
+        final demoUser = await _authService.getDemoUser(_token == 'owner-demo-token' 
+            ? 'owner@example.com' 
+            : (_token == 'rider-demo-token' ? 'rider@example.com' : (_token == 'admin-demo-token' ? 'admin@example.com' : 'customer@example.com')));
+        if (demoUser != null) {
+          user = User.fromJson(demoUser);
+        }
+      }
     }
     isInitializing = false;
     notifyListeners();
@@ -39,7 +47,12 @@ class AuthProvider extends ChangeNotifier {
       try {
         final profile = await apiService.fetchProfile(_token!);
         user = User.fromJson(profile);
-      } catch (_) {}
+      } catch (_) {
+        final demoUser = await _authService.getDemoUser(email);
+        if (demoUser != null) {
+          user = User.fromJson(demoUser);
+        }
+      }
       notifyListeners();
       return true;
     }

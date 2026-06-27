@@ -30,7 +30,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     final api = Provider.of<ApiService>(context, listen: false);
     final restaurant = await api.fetchMyRestaurant();
     if (mounted && restaurant != null) {
-      _restaurantId = restaurant['id'] as int?;
+      _restaurantId = int.tryParse('${restaurant['id']}') ?? 0;
     }
   }
 
